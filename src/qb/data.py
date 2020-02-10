@@ -32,14 +32,17 @@ class QantaReader(DatasetReader):
     def __init__(self,
                  fold: str,
                  break_questions: bool,
+                 debug: bool = False,
                  parallel: bool = False,
                  lazy: bool = False):
         super().__init__(lazy)
         self._fold = fold
         self._parallel = parallel
+        self._debug = debug
         self._break_questions = break_questions
         self._tokenizer = PretrainedTransformerTokenizer(
-            'bert-base-uncased', do_lowercase=True
+            'bert-base-uncased', do_lowercase=True,
+            start_tokens=[], end_tokens=[]
         )
         self._token_indexers = {'text': PretrainedBertIndexer('bert-base-uncased')}
 
@@ -52,8 +55,12 @@ class QantaReader(DatasetReader):
             return [inst for inst in self._read_serial(file_path)]
 
     def _read_serial(self, file_path):
+        if self._debug:
+            max_examples = 256
+        else:
+            max_examples = None
         with open(file_path) as f:
-            for q in tqdm(json.load(f)['questions']):
+            for q in tqdm(json.load(f)['questions'][:max_examples]):
                 if q['page'] is not None and q['fold'] == self._fold:
                     if self._break_questions:
                         for start, end in q['tokenizations']:
@@ -100,6 +107,9 @@ class QantaReader(DatasetReader):
         fields['text'] = TextField(tokenized_text, token_indexers=self._token_indexers)
         if page is not None:
             fields['page'] = LabelField(page, label_namespace='page_labels')
-        fields['metadata'] = MetadataField({'qanta_id': qanta_id})
+        fields['metadata'] = MetadataField({
+            'qanta_id': qanta_id,
+            'tokens': tokenized_text
+        })
         return Instance(fields)
 
