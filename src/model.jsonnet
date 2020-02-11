@@ -1,4 +1,4 @@
-function(lr=0.00001) {
+function(lr=0.00001, dropout=0.25) {
   dataset_reader: {
     lazy: false,
     debug: false,
@@ -10,7 +10,7 @@ function(lr=0.00001) {
   validation_data_path: 'data/qanta.guesstrain-10.2018.04.18.json',
   model: {
     type: 'guesser',
-    dropout: 0.5,
+    dropout: dropout,
   },
   iterator: {
     type: 'bucket',
@@ -18,14 +18,20 @@ function(lr=0.00001) {
     batch_size: 32,
   },
   trainer: {
+    type: 'callback',
+    callbacks: [
+      'checkpoint',
+      {type: 'track_metrics', patience: 2, validation_metric: '+accuracy'},
+      'validate',
+      {'type': 'log_to_tensorboard'},
+      {'type': 'log_to_mlflow', experiment_name: 'bert-base'},
+      {'type': 'log_to_comet', project_name: 'qb-bert'},
+    ],
     optimizer: {
       type: 'adam',
       lr: lr,
     },
-    validation_metric: '+accuracy',
-    num_serialized_models_to_keep: 1,
     num_epochs: 50,
-    patience: 2,
     cuda_device: 0,
   },
 }
