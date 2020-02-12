@@ -20,11 +20,14 @@ function(lr=0.00001, dropout=0.25) {
   trainer: {
     type: 'callback',
     callbacks: [
-      'checkpoint',
-      {type: 'track_metrics', patience: 2, validation_metric: '+accuracy'},
+      {
+        type: 'checkpoint',
+        checkpointer: { num_serialized_models_to_keep: 1 },
+      },
+      { type: 'track_metrics', patience: 2, validation_metric: '+accuracy' },
       'validate',
-      {'type': 'log_to_tensorboard'},
-      {'type': 'log_to_comet', project_name: 'qb-bert'},
+      { type: 'log_to_tensorboard' },
+      { type: 'log_to_comet', project_name: 'qb-bert' },
     ],
     optimizer: {
       type: 'adam',
