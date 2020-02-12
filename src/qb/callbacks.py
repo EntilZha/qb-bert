@@ -1,60 +1,10 @@
 from typing import Text
 import socket
 import os
-import mlflow
 import comet_ml
+import toml
 from allennlp.training.callbacks.callback import Callback, handle_event
 from allennlp.training.callbacks.events import Events
-
-
-@Callback.register('log_to_mlflow')
-class LogToMlflow(Callback):
-    def __init__(self, experiment_name: Text = None):
-        self._experiment_name = experiment_name
-    
-    @handle_event(Events.TRAINING_START)
-    def training_start(self, trainer):
-        if self._experiment_name is not None:
-            mlflow.set_experiment(self._experiment_name)
-            mlflow.start_run()
-            slurm_log_file = os.environ.get('SLURM_LOG_FILE')
-            if slurm_log_file is not None:
-                mlflow.log_artifact(slurm_log_file)
-            model_config_file = os.environ.get('MODEL_CONFIG_FILE')
-            if model_config_file is not None:
-                mlflow.log_artifact(model_config_file)
-                mlflow.set_tag('model_config', model_config_file)
-            slurm_job_id = os.environ.get('SLURM_JOB_ID')
-            if slurm_job_id is not None:
-                mlflow.set_tag('slurm_job_id', slurm_job_id)
-                mlflow.set_tag('log_url', f'http://users.umiacs.umd.edu/~entilzha/logs/{slurm_job_id}.log')
-            mlflow.set_tag('hostname', socket.gethostname())
-
-    @handle_event(Events.TRAINING_END)
-    def training_end(self, trainer):
-        if self._experiment_name is not None:
-            mlflow.log_artifact(trainer._serialization_dir)
-            mlflow.end_run()
-
-
-    @handle_event(Events.EPOCH_END)
-    def epoch_end_logging(self, trainer):
-        if self._experiment_name is not None:
-            epoch = trainer.epoch_number + 1
-            for key, val in trainer.train_metrics.items():
-                mlflow.log_metric(f'train_{key}', val, step=epoch)
-
-            for key, val in trainer.val_metrics.items():
-                mlflow.log_metric(f'val_{key}', val, step=epoch)
-            slurm_log_file = os.environ.get('SLURM_LOG_FILE')
-            if slurm_log_file is not None:
-                mlflow.log_artifact(slurm_log_file)
-
-    @handle_event(Events.ERROR)
-    def mark_run_failure(self, trainer):
-        if self._experiment_name is not None:
-            mlflow.set_tag('error', str(trainer.exception))
-            mlflow.end_run(status='FAILED')
 
 
 @Callback.register('log_to_comet')
@@ -63,6 +13,7 @@ class LogToComet(Callback):
         self._project_name = project_name
         if project_name is None:
             self._experiment = None
+            self._conf = None
         else:
             self._experiment = comet_ml.Experiment(project_name=self._project_name)
             slurm_log_file = os.environ.get('SLURM_LOG_FILE')
@@ -71,6 +22,13 @@ class LogToComet(Callback):
             model_config_file = os.environ.get('MODEL_CONFIG_FILE')
             if model_config_file is not None:
                 self._experiment.log_asset(model_config_file)
+                with open(model_config_file) as f:
+                    self._conf = toml.load(f)
+                self._experiment.log_asset(self._conf['allennlp_conf'])
+                for key, val in self._conf['params'].items():
+                    self._experiment.log_parameter(key, val)
+                self._experiment.add_tag(conf['name'])
+                self._experiment.log_parameter('generated_id', conf['generated_id'])
             slurm_job_id = os.environ.get('SLURM_JOB_ID')
             if slurm_job_id is not None:
                 self._experiment.log_other('slurm_job_id', slurm_job_id)
@@ -80,7 +38,7 @@ class LogToComet(Callback):
     @handle_event(Events.TRAINING_END)
     def training_end(self, trainer):
         if self._experiment is not None:
-            self._experiment.log_asset_folder(trainer._serialization_dir)
+            self._experiment.log_asset_folder(conf['serialization_dir'])
             self._experiment.end()
 
 

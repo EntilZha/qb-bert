@@ -1,5 +1,5 @@
 import os
-import uuid
+import random
 import copy
 import subprocess
 import toml
@@ -37,9 +37,13 @@ def hyper_to_configs(path):
         return [hyper_conf]
 
 
+def random_experiment_id():
+    return str(random.randint(1_000_000, 2_000_000))
+
+
 @click.command(name='hyper')
 @click.option('--dry-run', is_flag=True, default=False)
-@click.option('--n-trials', type=int, default=3)
+@click.option('--n-trials', type=int, default=1)
 @click.option('--slurm-job/--no-slurm-job', is_flag=True, default=True)
 @click.argument('hyper_conf_path')
 @click.argument('base_json_conf')
@@ -49,25 +53,29 @@ def hyper_cli(dry_run, n_trials, slurm_job, hyper_conf_path, base_json_conf, nam
         print('Running in dry run mode')
     configs = hyper_to_configs(hyper_conf_path)
     conf_paths = []
-    model_paths = []
     for c in configs:
-        conf_name = f'generated-{name}-{uuid.uuid4()}'
-        file_path = os.path.join('config', 'generated', name, f'{conf_name}.json')
-        target_path = os.path.join('model', 'generated', name, conf_name)
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        conf_name = random_experiment_id()
+        allennlp_conf_path = os.path.join('config', 'generated', name, f'{conf_name}.json')
+        conf_path = os.path.join('config', 'generated', name, f'{conf_name}.toml')
+        serialization_dir = os.path.join('model', 'generated', name, conf_name)
+        c['generated_id'] = conf_name
+        c['name'] = name
+        c['allennlp_conf'] = allennlp_conf_path
+        c['serialization_dir'] = serialization_dir
+        os.makedirs(os.path.dirname(conf_path), exist_ok=True)
+        os.makedirs(serialization_dir, exist_ok=True)
+        with open(conf_path, 'w') as f:
+            toml.dump(c, f)
         args = []
         for key, val in c['params'].items():
             args.append(f'--tla-code {key}={val}')
         args = ' '.join(args)
-        run_jsonnet(base_json_conf, args, file_path)
-
-        conf_paths.append(file_path)
-        model_paths.append(target_path)
+        run_jsonnet(base_json_conf, args, allennlp_conf_path)
+        conf_paths.append(conf_path)
 
     with open(f'{name}-jobs.sh', 'w') as f:
-        for m_path, c_path in zip(model_paths, conf_paths):
+        for c_path in conf_paths:
             if slurm_job:
-                f.write(f'sbatch slurm-allennlp.sh -s {m_path} {c_path}\n')
+                f.write(f'sbatch slurm-allennlp.sh {c_path}\n')
             else:
-                f.write(f'allennlp train --include-package qb -f -s {m_path} {c_path}\n')
+                f.write(f'python qb/main.py train {c_path}\n')

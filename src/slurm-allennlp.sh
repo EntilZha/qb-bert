@@ -18,5 +18,6 @@ nvidia-smi
 source /fs/clip-quiz/entilzha/anaconda3/etc/profile.d/conda.sh > /dev/null 2> /dev/null
 conda activate qb-bert
 export SLURM_LOG_FILE="/fs/www-users/entilzha/logs/${SLURM_JOB_ID}.log"
-export MODEL_CONFIG_FILE="${@: -1}"
-srun allennlp train --include-package qb -f $@
+export MODEL_CONFIG_FILE="$@"
+#srun allennlp train --include-package qb -f $@
+srun python qb/main.py train $@

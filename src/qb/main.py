@@ -2,11 +2,18 @@ import os
 import glob
 
 import click
-import mlflow
+import toml
+import comet_ml
+from allennlp.commands import train
 
 from qb.util import get_logger
 from qb.config import Config
 from qb.hyper import hyper_cli
+# imports for allennlp register
+from qb import model
+from qb import callbacks
+from qb import data
+# end register hook imports
 
 
 log = get_logger(__name__)
@@ -21,29 +28,19 @@ cli.add_command(hyper_cli)
 
 
 @cli.command(name='train')
-@click.option('--trial', default=0, type=int)
 @click.argument('config_path')
-def cli_train(trial, config_path):
-    config = Config(config_path, trial=trial)
+def cli_train(config_path):
     log.info('Training model')
-    with mlflow.start_run():
-        config.train()
-        config.complete()
-
-
-@cli.command(name='check')
-@click.option('--trials', default=3, type=int)
-def cli_check(trials):
-    log.info('Checking for missing models')
-    for conf_paths in glob.glob('config/generated/**/*.toml'):
-        name = os.path.basename(conf_paths).split('.toml')[0]
-        for n in range(trials):
-            model_complete = os.path.join('models', name, str(n), 'COMPLETE')
-            if not os.path.exists(model_complete):
-                log.info(f'Missing: {model_complete}')
-            report = os.path.join('models', name, str(n), 'report.json')
-            if not os.path.exists(report):
-                log.info(f'Missing: {report}')
+    with open(config_path) as f:
+        conf = toml.load(f)
+    log.info(f'Configuration\n{conf}')
+    
+    train.train_model_from_file(
+        parameter_filename=conf['allennlp_conf'],
+        serialization_dir=conf['serialization_dir'],
+        file_friendly_logging=True,
+        force=True,
+    )
 
 
 if __name__ == '__main__':

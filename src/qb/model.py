@@ -19,9 +19,9 @@ class Guesser(Model):
         self._bert = PretrainedBertEmbedder('bert-base-uncased', requires_grad=True)
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self._classifier = nn.Sequential(
+            nn.Dropout(dropout),
             nn.Linear(self._bert.get_output_dim(), self._num_labels),
             nn.BatchNorm1d(self._num_labels),
-            nn.Dropout(dropout)
         )
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()

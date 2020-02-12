@@ -24,7 +24,6 @@ function(lr=0.00001, dropout=0.25) {
       {type: 'track_metrics', patience: 2, validation_metric: '+accuracy'},
       'validate',
       {'type': 'log_to_tensorboard'},
-      {'type': 'log_to_mlflow', experiment_name: 'bert-base'},
       {'type': 'log_to_comet', project_name: 'qb-bert'},
     ],
     optimizer: {
