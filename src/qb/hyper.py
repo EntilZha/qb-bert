@@ -57,7 +57,8 @@ def hyper_cli(dry_run, n_trials, slurm_job, hyper_conf_path, base_json_conf, nam
         conf_name = random_experiment_id()
         allennlp_conf_path = os.path.join('config', 'generated', name, f'{conf_name}.json')
         conf_path = os.path.join('config', 'generated', name, f'{conf_name}.toml')
-        serialization_dir = os.path.join('model', 'generated', name, conf_name)
+        # serialization_dir = os.path.join('model', 'generated', name, conf_name)
+        serialization_dir = os.path.join('/tmp', conf_name, 'model', 'generated', name, conf_name)
         c['generated_id'] = conf_name
         c['name'] = name
         c['allennlp_conf'] = allennlp_conf_path
@@ -79,3 +80,7 @@ def hyper_cli(dry_run, n_trials, slurm_job, hyper_conf_path, base_json_conf, nam
                 f.write(f'sbatch slurm-allennlp.sh {c_path}\n')
             else:
                 f.write(f'python qb/main.py train {c_path}\n')
+
+    with open(f'{name}-scav-jobs.sh', 'w') as f:
+        for c_path in conf_paths:
+            f.write(f'sbatch slurm-scav-allennlp.sh {c_path}\n')
