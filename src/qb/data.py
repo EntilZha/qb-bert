@@ -32,14 +32,14 @@ class QantaReader(DatasetReader):
     def __init__(self,
                  fold: str,
                  break_questions: bool,
+                 first_sentence_only: bool = False,
                  debug: bool = False,
-                 parallel: bool = False,
                  lazy: bool = False):
         super().__init__(lazy)
         self._fold = fold
-        self._parallel = parallel
         self._debug = debug
         self._break_questions = break_questions
+        self._first_sentence_only = first_sentence_only
         self._tokenizer = PretrainedTransformerTokenizer(
             'bert-base-uncased', do_lowercase=True,
             start_tokens=[], end_tokens=[]
@@ -49,10 +49,7 @@ class QantaReader(DatasetReader):
     @overrides
     def _read(self, file_path):
         log.info(f"Reading instances from: {file_path}")
-        if self._parallel:
-            return [inst for inst in self._read_parallel(file_path)]
-        else:
-            return [inst for inst in self._read_serial(file_path)]
+        return [inst for inst in self._read_serial(file_path)]
 
     def _read_serial(self, file_path):
         if self._debug:
@@ -69,34 +66,6 @@ class QantaReader(DatasetReader):
                     else:
                         yield self.text_to_instance(q['text'], q['page'], q['qanta_id'])
 
-    def _read_parallel(self, file_path):
-        texts = []
-        pages = []
-        qids = []
-        with open(file_path) as f:
-            for q in tqdm(json.load(f)['questions']):
-                if q['page'] is not None and q['fold'] == self._fold:
-                    if self._break_questions:
-                        for start, end in q['tokenizations']:
-                            texts.append(q['text'][start:end])
-                            pages.append(q['page'])
-                            qids.append(q['qanta_id'])
-                    else:
-                        texts.append(q['text'])
-                        pages.append(q['page'])
-                        qids.append(q['qanta_id'])
-
-        log.info('Starting parallel tokenization')
-        tokenized_texts = self._tokenizer.batch_tokenize(texts)
-        log.info('Tokenization complete')
-        for i in range(len(tokenized_texts)):
-            text = tokenized_texts[i]
-            fields: Dict[str, Field] = {}
-            fields['text'] = TextField(text, token_indexers=self._token_indexers)
-            fields['page'] = LabelField(pages[i], label_namespace='page_labels')
-            fields['metadata'] = MetadataField({'qanta_id': qids[i], 'domain': 'qb'})
-            yield Instance(fields)
-
     @overrides
     def text_to_instance(self,
                          text: str,
@@ -112,4 +81,3 @@ class QantaReader(DatasetReader):
             'tokens': tokenized_text
         })
         return Instance(fields)
-

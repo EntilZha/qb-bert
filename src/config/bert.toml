@@ -1,9 +1,11 @@
 model = "bert"
 
 [hyper]
-"params.lr" = [0.001, 0.0001, 0.00001, 0.000001]
-"params.dropout" = [0.25, 0.5]
+"params.lr" = [0.000025]
+"params.dropout" = [0.35]
+"params.pool" = ["mean"]
 
 [params]
+pool = "mean"
 lr = 0.0001
 dropout = 0.25

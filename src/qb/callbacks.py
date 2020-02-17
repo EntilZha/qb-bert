@@ -32,7 +32,10 @@ class LogToComet(Callback):
             slurm_job_id = os.environ.get('SLURM_JOB_ID')
             if slurm_job_id is not None:
                 self._experiment.log_other('slurm_job_id', slurm_job_id)
-                self._experiment.log_html_url(f'http://users.umiacs.umd.edu/~entilzha/logs/{slurm_job_id}.log', label='slurm_log')
+                self._experiment.log_html_url(
+                    f'http://users.umiacs.umd.edu/~entilzha/logs/{slurm_job_id}.log',
+                    label='slurm_log'
+                )
             self._experiment.log_other('hostname', socket.gethostname())
 
     @handle_event(Events.TRAINING_END)
@@ -40,8 +43,8 @@ class LogToComet(Callback):
         if self._experiment is not None:
             if self._conf is not None:
                 self._experiment.log_asset_folder(self._conf['serialization_dir'])
+            self._experiment.add_tag('COMPLETED')
             self._experiment.end()
-
 
     @handle_event(Events.EPOCH_END)
     def epoch_end_logging(self, trainer):

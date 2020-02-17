@@ -69,7 +69,10 @@ def hyper_cli(dry_run, n_trials, slurm_job, hyper_conf_path, base_json_conf, nam
             toml.dump(c, f)
         args = []
         for key, val in c['params'].items():
-            args.append(f'--tla-code {key}={val}')
+            if isinstance(val, str):
+                args.append(f'--tla-str {key}={val}')
+            else:
+                args.append(f'--tla-code {key}={val}')
         args = ' '.join(args)
         run_jsonnet(base_json_conf, args, allennlp_conf_path)
         conf_paths.append(conf_path)

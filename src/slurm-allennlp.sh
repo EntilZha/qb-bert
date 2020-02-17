@@ -7,8 +7,8 @@
 #SBATCH --error=/fs/www-users/entilzha/logs/%A.log
 #SBATCH --cpus-per-task=4
 #SBATCH --mem-per-cpu=20g
-#SBATCH --time=1-00:00:00
-#SBATCH --qos=gpu-medium
+#SBATCH --time=4-00:00:00
+#SBATCH --qos=gpu-long
 #SBATCH --partition=gpu
 #SBATCH --exclude=materialgpu00
 

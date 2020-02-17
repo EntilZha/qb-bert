@@ -1,7 +1,7 @@
-function(lr=0.00001, dropout=0.25) {
+function(lr=0.00001, dropout=0.25, pool='mean') {
   dataset_reader: {
     lazy: false,
-    debug: false,
+    debug: true,
     type: 'qanta',
     fold: 'guesstrain',
     break_questions: true,
@@ -11,6 +11,7 @@ function(lr=0.00001, dropout=0.25) {
   model: {
     type: 'guesser',
     dropout: dropout,
+    pool: pool,
   },
   iterator: {
     type: 'bucket',
