@@ -15,13 +15,17 @@ class Guesser(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  dropout: float,
-                 pool: Text,
+                 pool: Text = "cls",
                  label_namespace: str = "page_labels"):
         super().__init__(vocab)
         self._pool = pool
         self._bert = PretrainedBertEmbedder('bert-base-uncased', requires_grad=True)
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self._classifier = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(self._bert.get_output_dim(), self._bert.get_output_dim()),
+            nn.GELU(),
+            nn.LayerNorm(self._bert.get_output_dim()),
             nn.Dropout(dropout),
             nn.Linear(self._bert.get_output_dim(), self._num_labels),
         )
@@ -37,15 +41,19 @@ class Guesser(Model):
         if self._pool == 'cls':
             bert_emb = self._bert(input_ids)[:, 0, :]
         elif self._pool == 'mean':
-            mask = (input_ids != 0).long()
+            mask = (input_ids != 0).long()[:, :, None]
             bert_seq_emb = self._bert(input_ids)
-            bert_emb = util.masked_mean(bert_seq_emb, mask, dim=-1)
+            bert_emb = util.masked_mean(bert_seq_emb, mask, dim=1)
         else:
             raise ValueError('Invalid config')
 
         logits = self._classifier(bert_emb)
         probs = torch.nn.functional.softmax(logits, dim=-1)
-        output_dict = {'logits': logits, 'probs': probs}
+        output_dict = {
+            'logits': logits,
+            'probs': probs,
+            'preds': torch.argmax(logits, 1)
+        }
 
         if page is not None:
             loss = self._loss(logits, page.long().view(-1))

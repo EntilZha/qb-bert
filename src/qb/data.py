@@ -33,12 +33,14 @@ class QantaReader(DatasetReader):
                  fold: str,
                  break_questions: bool,
                  first_sentence_only: bool = False,
+                 include_label: bool = True,
                  debug: bool = False,
                  lazy: bool = False):
         super().__init__(lazy)
         self._fold = fold
         self._debug = debug
         self._break_questions = break_questions
+        self._include_label = include_label
         self._first_sentence_only = first_sentence_only
         self._tokenizer = PretrainedTransformerTokenizer(
             'bert-base-uncased', do_lowercase=True,
@@ -63,6 +65,10 @@ class QantaReader(DatasetReader):
                         for start, end in q['tokenizations']:
                             sentence = q['text'][start:end]
                             yield self.text_to_instance(sentence, q['page'], q['qanta_id'])
+                    elif self._first_sentence_only:
+                        start, end = q['tokenizations'][0]
+                        sentence = q['text'][start:end]
+                        yield self.text_to_instance(sentence, q['page'], q['qanta_id'])
                     else:
                         yield self.text_to_instance(q['text'], q['page'], q['qanta_id'])
 
@@ -74,10 +80,11 @@ class QantaReader(DatasetReader):
         fields: Dict[str, Field] = {}
         tokenized_text = self._tokenizer.tokenize(text)
         fields['text'] = TextField(tokenized_text, token_indexers=self._token_indexers)
-        if page is not None:
+        if page is not None and self._include_label:
             fields['page'] = LabelField(page, label_namespace='page_labels')
         fields['metadata'] = MetadataField({
             'qanta_id': qanta_id,
-            'tokens': tokenized_text
+            'tokens': tokenized_text,
+            'page': page,
         })
         return Instance(fields)

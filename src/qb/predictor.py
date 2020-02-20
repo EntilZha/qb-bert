@@ -4,6 +4,7 @@ from qb.model import Guesser
 from qb.data import QantaReader
 
 
+Predictor.register('qb_predictor')
 class QbPredictor(Predictor):
     def __init__(self, model: Guesser, dataset_reader: QantaReader):
         super().__init__(model, dataset_reader)

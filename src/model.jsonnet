@@ -1,7 +1,7 @@
-function(lr=0.00001, dropout=0.25, pool='mean') {
+function(lr=0.00001, dropout=0.25, pool='mean', debug=false) {
   dataset_reader: {
     lazy: false,
-    debug: true,
+    debug: debug,
     type: 'qanta',
     fold: 'guesstrain',
     break_questions: true,
@@ -28,8 +28,7 @@ function(lr=0.00001, dropout=0.25, pool='mean') {
       { type: 'track_metrics', patience: 2, validation_metric: '+accuracy' },
       'validate',
       { type: 'log_to_tensorboard' },
-      { type: 'log_to_comet', project_name: 'qb-bert' },
-    ],
+    ] + if debug then [] else [{ type: 'log_to_comet', project_name: 'qb-bert' }],
     optimizer: {
       type: 'adam',
       lr: lr,

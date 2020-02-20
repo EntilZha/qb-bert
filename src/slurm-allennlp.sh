@@ -5,7 +5,7 @@
 #SBATCH --chdir=/fs/clip-quiz/entilzha/code/qb-bert/src
 #SBATCH --output=/fs/www-users/entilzha/logs/%A.log
 #SBATCH --error=/fs/www-users/entilzha/logs/%A.log
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=20g
 #SBATCH --time=4-00:00:00
 #SBATCH --qos=gpu-long
