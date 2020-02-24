@@ -3,11 +3,10 @@ function(lr=0.00001, dropout=0.25, pool='mean', debug=false) {
     lazy: false,
     debug: debug,
     type: 'qanta',
-    fold: 'guesstrain',
     break_questions: true,
   },
-  train_data_path: 'data/qanta.guesstrain-90.2018.04.18.json',
-  validation_data_path: 'data/qanta.guesstrain-10.2018.04.18.json',
+  train_data_path: 'data/qanta.guesstrain.2018.04.18.json',
+  validation_data_path: 'data/qanta.guessdev.2018.04.18.json',
   model: {
     type: 'guesser',
     dropout: dropout,
