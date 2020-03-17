@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Text
 import re
 from unidecode import unidecode
 import nltk
@@ -11,9 +11,9 @@ from allennlp.data import DatasetReader, TokenIndexer, Instance
 from allennlp.data.fields import TextField, LabelField, Field, MetadataField
 from allennlp.data.tokenizers import Tokenizer, WordTokenizer, Token
 from allennlp.data.tokenizers.pretrained_transformer_tokenizer import PretrainedTransformerTokenizer
-from allennlp.data.token_indexers.wordpiece_indexer import PretrainedBertIndexer
+from allennlp.data.token_indexers import TokenIndexer, PretrainedBertIndexer
 
-from qb.util import get_logger
+from qb import util
 
 
 qb_patterns = {
@@ -35,12 +35,13 @@ re_pattern = '|'.join([re.escape(p) for p in qb_patterns])
 re_pattern += r'|\[.*?\]|\(.*?\)'
 
 
-log = get_logger(__name__)
+log = util.get_logger(__name__)
 
 QANTA_TRAIN = 'data/qanta.train.2018.04.18.json'
 QANTA_DEV = 'data/qanta.dev.2018.04.18.json'
 QANTA_TEST = 'data/qanta.test.2018.04.18.json'
 QANTA_GUESSDEV = 'data/qanta.guessdev.2018.04.18.json'
+QANTA_MAPPED = 'data/qanta.mapped.2018.04.18.json'
 
 
 def extract_wiki_sentences(
@@ -101,51 +102,53 @@ def create_char_runs(text: str, char_skip: int):
 
 @DatasetReader.register('qanta')
 class QantaReader(DatasetReader):
-    def __init__(self,
-                 qanta_dataset: Text,
-                 break_questions: bool,
+    def __init__(self, *,
+                 tokenizer: Tokenizer,
+                 token_indexers: Dict[Text, TokenIndexer],
+                 full_question_only: bool,
+                 first_sentence_only: bool,
                  char_skip: Optional[int] = None,
+                 qanta_path: Text = QANTA_MAPPED,
                  wiki_path: Optional[Text] = None,
                  n_wiki_sentences: int = 0,
-                 first_sentence_only: bool = False,
                  include_label: bool = True,
                  debug: bool = False,
                  lazy: bool = False):
         super().__init__(lazy)
-        self._qanta_dataset = qanta_dataset
+        self._full_question_only = full_question_only
+        self._first_sentence_only = first_sentence_only
         self._char_skip = char_skip
+        self._qanta_path = qanta_path
         self._wiki_path = wiki_path
         self._n_wiki_sentences = n_wiki_sentences
         self._debug = debug
-        self._break_questions = break_questions
         self._include_label = include_label
-        self._first_sentence_only = first_sentence_only
-        self._tokenizer = PretrainedTransformerTokenizer(
+        self._tokenizer = tokenizer or PretrainedTransformerTokenizer(
             'bert-base-uncased', do_lowercase=True,
             start_tokens=[], end_tokens=[]
         )
-        self._token_indexers = {'text': PretrainedBertIndexer('bert-base-uncased')}
+        self._token_indexers = token_indexers
 
     @overrides
     def _read(self, fold):
-        log.info(f"Reading instances from: {file_path}")
-        questions = util.read_json(self._qanta_dataset)['questions']
+        log.info(f"Reading instances from fold={fold}, file_path={self._qanta_path}")
+        questions = util.read_json(self._qanta_path)['questions']
         max_examples = 256 if self._debug else None
-        questions = question[:max_examples]
+        questions = questions[:max_examples]
     
         answer_set = set()
         for q in tqdm(questions):
             if q['page'] is not None and q['fold'] == fold:
+                proto_id = q.get('proto_id')
                 answer_set.add(q['page'])
-                if self._break_questions:
-                    for start, end in q['tokenizations']:
-                        sentence = q['text'][start:end]
-                        yield self.text_to_instance(
-                            sentence,
-                            page=q['page'],
-                            qanta_id=q['qanta_id'],
-                            source='qb',
-                        )
+                if self._full_question_only:
+                    yield self.text_to_instance(
+                        q['text'],
+                        page=q['page'],
+                        qanta_id=q['qanta_id'],
+                        proto_id=proto_id,
+                        source='qb',
+                    )
                 elif self._first_sentence_only:
                     start, end = q['tokenizations'][0]
                     sentence = q['text'][start:end]
@@ -153,25 +156,31 @@ class QantaReader(DatasetReader):
                         sentence,
                         page=q['page'],
                         qanta_id=q['qanta_id'],
+                        proto_id=proto_id,
                         source='qb',
                     )
                 elif self._char_skip is not None:
+                    text = q['text']
                     for text_run, char_idx in create_char_runs(text, self._char_skip):
                         yield self.text_to_instance(
                             text_run,
                             page=q['page'],
                             qanta_id=q['qanta_id'],
+                            proto_id=proto_id,
                             source='qb',
                             char_idx=char_idx,
                         )
                 else:
-                    yield self.text_to_instance(
-                        q['text'],
-                        page=q['page'],
-                        qanta_id=q['qanta_id'],
-                        source='qb'
-                    )
-        if fold == 'guesstrain' and self.n_wiki_sentences > 0:
+                    for start, end in q['tokenizations']:
+                        sentence = q['text'][start:end]
+                        yield self.text_to_instance(
+                            sentence,
+                            page=q['page'],
+                            qanta_id=q['qanta_id'],
+                            proto_id=proto_id,
+                            source='qb',
+                        )
+        if fold == 'guesstrain' and self._n_wiki_sentences > 0:
             wiki_lookup = util.read_json(self._wiki_path)
             pages_with_text = [
                 (p, wiki_lookup[p]['text'])
@@ -182,7 +191,7 @@ class QantaReader(DatasetReader):
                 sentences = extract_wiki_sentences(
                     title=page,
                     text=text,
-                    n_wiki_sentences=self._n_wiki_sentences,
+                    n_sentences=self._n_wiki_sentences,
                 )
                 for sent in sentences:
                     yield self.text_to_instance(
@@ -197,7 +206,8 @@ class QantaReader(DatasetReader):
                          *,
                          page: Optional[str] = None,
                          char_idx: Optional[int] = None,
-                         source: Optional[str] = None,
+                         source: Optional[Text] = None,
+                         proto_id: Optional[Text] = None,
                          qanta_id: Optional[int] = None):
         fields: Dict[str, Field] = {}
         tokenized_text = self._tokenizer.tokenize(text)
@@ -206,6 +216,7 @@ class QantaReader(DatasetReader):
             fields['page'] = LabelField(page, label_namespace='page_labels')
         fields['metadata'] = MetadataField({
             'qanta_id': qanta_id,
+            'proto_id': proto_id,
             'tokens': tokenized_text,
             'page': page,
             'source': source,

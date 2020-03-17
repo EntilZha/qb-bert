@@ -1,10 +1,16 @@
 function(lr=0.00001, dropout=0.25, pool='mean', debug=false) {
   dataset_reader: {
-    qanta_dataset: 'data/qanta.mapped.2018.04.18.json'
+    qanta_dataset: 'data/qanta.mapped.2018.04.18.json',
     lazy: false,
     debug: debug,
     type: 'qanta',
     break_questions: true,
+    token_indexers: {
+      text: {
+        type: 'bert-pretrained',
+        pretrained_model: 'bert-base-uncased'
+      }
+    },
   },
   train_data_path: 'guesstrain',
   validation_data_path: 'guessdev',
