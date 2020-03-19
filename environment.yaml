@@ -1,0 +1,28 @@
+name: qb-bert
+dependencies:
+  - python=3.7
+  - pytorch=1.4.*
+  - cudatoolkit=10.1
+  - numpy
+  - scipy
+  - pandas=1.0.*
+  - requests
+  - flask
+  - ipython
+  - pylint
+  - pyflakes
+  - pycodestyle
+  - jedi
+  - click=7.0.*
+  - toml
+  - pip
+  - pip:
+    - allennlp==0.9.*
+    - overrides
+    - spacy
+    - plotnine
+    - unidecode
+channels:
+  - anaconda
+  - pytorch
+  - conda-forge
