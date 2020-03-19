@@ -16,6 +16,7 @@ class Guesser(Model):
                  dropout: float,
                  label_namespace: str = "page_labels"):
         super().__init__(vocab)
+        self.top_k = None
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self._classifier = nn.Sequential(
             nn.Dropout(dropout),
@@ -28,10 +29,14 @@ class Guesser(Model):
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()
 
-    def _hidden_to_output(self,
+    def _hidden_to_output(
+                self,
+                # (batch_size, hidden_size)
                 hidden_state: torch.LongTensor,
                 page: torch.IntTensor = None):
+        # (batch_size, n_classes)
         logits = self._classifier(hidden_state)
+        # (batch_size, n_classes)
         probs = torch.nn.functional.softmax(logits, dim=-1)
         output_dict = {
             'logits': logits,
@@ -43,6 +48,9 @@ class Guesser(Model):
             loss = self._loss(logits, page.long().view(-1))
             output_dict['loss'] = loss
             self._accuracy(logits, page)
+        if self.top_k is not None:
+            output_dict['top_k_scores'], output_dict['top_k_indices'] = torch.topk(
+                probs, self.top_k, dim=-1)
 
         return output_dict
 
