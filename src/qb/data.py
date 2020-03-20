@@ -123,10 +123,7 @@ class QantaReader(DatasetReader):
         self._n_wiki_sentences = n_wiki_sentences
         self._debug = debug
         self._include_label = include_label
-        self._tokenizer = tokenizer or PretrainedTransformerTokenizer(
-            'bert-base-uncased', do_lowercase=True,
-            start_tokens=[], end_tokens=[]
-        )
+        self._tokenizer = tokenizer
         self._token_indexers = token_indexers
 
     @overrides

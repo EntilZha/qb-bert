@@ -1,0 +1,6 @@
+model = "bert"
+
+[params]
+pool = "mean"
+lr = 3e-5
+dropout = 0.2

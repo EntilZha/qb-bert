@@ -7,24 +7,28 @@ from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.training.metrics import CategoricalAccuracy
 from allennlp.modules.token_embedders.bert_token_embedder import PretrainedBertEmbedder
+from allennlp.modules.text_field_embedders import TextFieldEmbedder
+from allennlp.modules.seq2vec_encoders import Seq2VecEncoder
 from allennlp.nn import util
 
 
 class Guesser(Model):
-    def __init__(self,
+    def __init__(self, *,
                  vocab: Vocabulary,
                  dropout: float,
+                 hidden_dim: int,
                  label_namespace: str = "page_labels"):
         super().__init__(vocab)
         self.top_k = None
         self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
+        self._hidden_dim = hidden_dim
         self._classifier = nn.Sequential(
             nn.Dropout(dropout),
-            nn.Linear(self._bert.get_output_dim(), self._bert.get_output_dim()),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.GELU(),
-            nn.LayerNorm(self._bert.get_output_dim()),
+            nn.LayerNorm(hidden_dim),
             nn.Dropout(dropout),
-            nn.Linear(self._bert.get_output_dim(), self._num_labels),
+            nn.Linear(hidden_dim, self._num_labels),
         )
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()
@@ -66,9 +70,15 @@ class BertGuesser(Guesser):
                  dropout: float,
                  pool: Text = "cls",
                  label_namespace: str = "page_labels"):
-        super().__init__(vocab, dropout=dropout, label_namespace=label_namespace)
+        bert = PretrainedBertEmbedder('bert-base-uncased', requires_grad=True)
+        super().__init__(
+            vocab=vocab,
+            dropout=dropout,
+            label_namespace=label_namespace,
+            hidden_dim=bert.get_output_dim()
+        )
+        self._bert = bert
         self._pool = pool
-        self._bert = PretrainedBertEmbedder('bert-base-uncased', requires_grad=True)
 
     def forward(self,
                 text: Dict[str, torch.LongTensor],
@@ -91,10 +101,16 @@ class BertGuesser(Guesser):
 class ClassicGuesser(Guesser):
     def __init__(self,
                  vocab: Vocabulary,
-                 encoder, contextualizer,
+                 encoder: TextFieldEmbedder,
+                 contextualizer: Seq2VecEncoder,
                  dropout: float,
                  label_namespace: str = "page_labels"):
-        super().__init__(vocab, dropout=dropout, label_namespace=label_namespace)
+        super().__init__(
+            vocab=vocab,
+            dropout=dropout,
+            label_namespace=label_namespace,
+            hidden_dim=contextualizer.get_output_dim()
+        )
         self._encoder = encoder
         self._contextualizer = contextualizer
 

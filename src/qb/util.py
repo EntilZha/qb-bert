@@ -13,8 +13,8 @@ except:  # pylint: disable=bare-except
     DEVICE = 'cpu'
 
 
-def shell(command):
-    return subprocess.run(command, check=True, shell=True, stderr=subprocess.STDOUT)
+def shell(command, check=True):
+    return subprocess.run(command, check=check, shell=True)
 
 
 def safe_path(path):

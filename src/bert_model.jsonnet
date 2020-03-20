@@ -1,10 +1,19 @@
 function(lr=0.00001, dropout=0.25, pool='mean', debug=false) {
   dataset_reader: {
-    qanta_dataset: 'data/qanta.mapped.2018.04.18.json',
+    qanta_path: '/fs/clip-quiz/entilzha/code/qb-bert/src/data/qanta.mapped.2018.04.18.json',
     lazy: false,
     debug: debug,
     type: 'qanta',
-    break_questions: true,
+    full_question_only: false,
+    first_sentence_only: false,
+    char_skip: null,
+    tokenizer: {
+      type: 'pretrained_transformer',
+      model_name: 'bert-base-uncased',
+      do_lowercase: true,
+      start_tokens: [],
+      end_tokens: [],
+    },
     token_indexers: {
       text: {
         type: 'bert-pretrained',
@@ -15,7 +24,7 @@ function(lr=0.00001, dropout=0.25, pool='mean', debug=false) {
   train_data_path: 'guesstrain',
   validation_data_path: 'guessdev',
   model: {
-    type: 'guesser',
+    type: 'bert_guesser',
     dropout: dropout,
     pool: pool,
   },
