@@ -1,0 +1,4 @@
+model = "rnn"
+
+[params]
+dropout = 0.25

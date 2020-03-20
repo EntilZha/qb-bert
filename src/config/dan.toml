@@ -1,0 +1,4 @@
+model = "dan"
+
+[params]
+dropout = 0.5

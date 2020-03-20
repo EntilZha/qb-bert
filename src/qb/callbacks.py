@@ -11,7 +11,8 @@ from allennlp.training.callbacks.events import Events
 class LogToComet(Callback):
     def __init__(self, project_name: Text = None):
         self._project_name = project_name
-        if project_name is None:
+        model_config_file = os.environ.get('MODEL_CONFIG_FILE')
+        if project_name is None or model_config_file is None:
             self._experiment = None
             self._conf = None
         else:
