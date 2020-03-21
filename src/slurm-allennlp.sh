@@ -7,8 +7,6 @@
 #SBATCH --error=/fs/clip-quiz/entilzha/logs/%A.log
 #SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=20g
-#SBATCH --time=4-00:00:00
-#SBATCH --qos=gpu-long
 #SBATCH --partition=gpu
 #SBATCH --exclude=materialgpu00
 

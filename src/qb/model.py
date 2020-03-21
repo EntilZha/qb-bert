@@ -166,6 +166,7 @@ class DanGuesser(Guesser):
         n_hidden_layers: int = 1,
         emb_dim: int = 300,
         dropout: float = 0.5,
+        pool: str = "avg",
         label_namespace: str = "page_labels"
     ):
         super().__init__(
@@ -181,7 +182,14 @@ class DanGuesser(Guesser):
                 )
             }
         )
-        self._boe = BagOfEmbeddingsEncoder(emb_dim, averaged=True)
+        self._pool = pool
+        if pool == "avg":
+            averaged = True
+        elif pool == "sum":
+            averaged = False
+        else:
+            raise ValueError("Invalid value for pool type")
+        self._boe = BagOfEmbeddingsEncoder(emb_dim, averaged=averaged)
         encoder_layers = []
         for i in range(n_hidden_layers):
             if i == 0:

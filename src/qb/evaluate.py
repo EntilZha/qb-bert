@@ -49,5 +49,5 @@ def score_model(serialization_dir: Text, log_to_comet=False):
 
     if log_to_comet:
         experiment = comet_ml.get_global_experiment()
-        experiment.log_metric(f"dev_first_accuracy", accuracy_start_dev)
-        experiment.log_metric(f"dev_full_accuracy", accuracy_full_dev)
+        experiment.log_metric("dev_first_accuracy", accuracy_start_dev)
+        experiment.log_metric("dev_full_accuracy", accuracy_full_dev)

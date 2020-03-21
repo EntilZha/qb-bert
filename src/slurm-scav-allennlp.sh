@@ -7,7 +7,7 @@
 #SBATCH --error=/fs/www-users/entilzha/logs/%A.log
 #SBATCH --cpus-per-task=2
 #SBATCH --mem-per-cpu=16g
-#SBATCH --time=3-00:00:00
+#SBATCH --time=4-00:00:00
 #SBATCH --qos=scavenger
 #SBATCH --partition=scavenger
 #SBATCH --account=scavenger
