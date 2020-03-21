@@ -5,10 +5,9 @@ import comet_ml
 import numpy as np
 from allennlp.models.archival import load_archive
 from qb.predictor import QbPredictor
-from qb.data import QantaReader, QANTA_GUESSDEV
 
 
-def compute_accuracy(predictor, instances):
+def compute_accuracy(predictor: QbPredictor, instances):
     vocab = predictor._model.vocab
     batch_size = 32
     idx = 0
