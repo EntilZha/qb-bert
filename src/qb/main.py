@@ -6,6 +6,7 @@ import toml
 import comet_ml  # pylint: disable=unused-import
 from allennlp.commands import train
 from allennlp.models.archival import load_archive
+from allennlp.predictors.predictor import Predictor
 
 from qb.util import get_logger, shell
 from qb.evaluate import score_model
@@ -61,17 +62,43 @@ def cli_evaluate(config_path):
 @click.argument("granularity")
 @click.argument("output_dir")
 def cli_generate_guesses(max_n_guesses, config_path, granularity, output_dir):
-    if granularity not in {"char", "full", "first"}:
+    if granularity == "first":
+        first_sentence = True
+        full_question = False
+        partial_question = False
+    elif granularity == "full":
+        first_sentence = False
+        full_question = True
+        partial_question = False
+    elif granularity == "char":
+        first_sentence = False
+        full_question = False
+        partial_question = True
+    else:
         raise ValueError("Invalid granularity")
+
     with open(config_path) as f:
         conf = toml.load(f)
     serialization_dir = conf["serialization_dir"]
     log.info("Loading model from: %s", serialization_dir)
     archive = load_archive(os.path.join(serialization_dir, "model.tar.gz"), cuda_device=0)
+    predictor = Predictor.from_archive(archive, "qb.predictor.QbPredictor")
+    dataset_reader = predictor._dataset_reader
+    tokenizer = dataset_reader._tokenizer
+    token_indexers = dataset_reader._token_indexers
     generation_folds = ["guessdev", "guesstest", "buzztrain", "buzzdev", "buzztest"]
     log.info("Generating guesses")
     for fold in tqdm(generation_folds):
-        df = generate_guesses(model=archive.model, max_n_guesses=max_n_guesses, fold=fold)
+        df = generate_guesses(
+            model=archive.model,
+            tokenizer=tokenizer,
+            token_indexers=token_indexers,
+            max_n_guesses=max_n_guesses,
+            fold=fold,
+            first_sentence=first_sentence,
+            full_question=full_question,
+            partial_question=partial_question,
+        )
         path = os.path.join(output_dir, f"guesses_{granularity}_{fold}.pickle")
         df.to_pickle(path)
 

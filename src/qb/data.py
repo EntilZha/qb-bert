@@ -93,18 +93,19 @@ def create_char_runs(text: str, char_skip: int):
     char_indices = list(range(char_skip, len(text) + char_skip, char_skip))
     return [text[:i] for i in char_indices], char_indices
 
+
 @DatasetReader.register("qanta")
 class QantaReader(DatasetReader):
     def __init__(
         self,
         *,
         tokenizer: Tokenizer,
-        token_indexers: Dict[Text, TokenIndexer],
+        token_indexers: Dict[str, TokenIndexer],
         full_question_only: bool,
         first_sentence_only: bool,
         char_skip: Optional[int] = None,
-        qanta_path: Text = QANTA_MAPPED,
-        wiki_path: Optional[Text] = None,
+        qanta_path: str = QANTA_MAPPED,
+        wiki_path: Optional[str] = None,
         n_wiki_sentences: int = 0,
         include_label: bool = True,
         debug: bool = False,
