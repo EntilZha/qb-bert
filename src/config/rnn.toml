@@ -1,4 +1,5 @@
 model = "rnn"
+n_trials = 1
 
 [slurm]
 qos = "gpu-medium"

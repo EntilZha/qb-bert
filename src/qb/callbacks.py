@@ -30,6 +30,8 @@ class LogToComet(Callback):
                     self._experiment.log_parameter(key, val)
                 self._experiment.add_tag(self._conf["name"])
                 self._experiment.log_parameter("generated_id", self._conf["generated_id"])
+                trial = self._conf.get("trial", 0)
+                self._experiment.log_parameter("trial", trial)
             slurm_job_id = os.environ.get("SLURM_JOB_ID")
             if slurm_job_id is not None:
                 self._experiment.log_other("slurm_job_id", slurm_job_id)

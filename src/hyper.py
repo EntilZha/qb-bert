@@ -18,22 +18,29 @@ def clone_src(target_dir: str):
     subprocess.run(f"cp -r build/lib/qb {target_dir}", shell=True, check=True)
 
 
-def hyper_to_configs(path):
+def random_experiment_id():
+    return str(random.randint(1_000_000, 2_000_000))
+
+
+def hyper_to_configs(path: str):
     with open(path) as f:
         hyper_conf = toml.load(f)
     configs = []
+    n_trials = hyper_conf.get("n_trials", 1)
     if "hyper" in hyper_conf:
         grid = ParameterGrid(hyper_conf["hyper"])
         del hyper_conf["hyper"]
         for params in grid:
-            conf = copy.deepcopy(hyper_conf)
-            for name, val in params.items():
-                splits = name.split(".")
-                access = conf
-                for part in splits[:-1]:
-                    access = access[part]
-                access[splits[-1]] = val
-            configs.append(conf)
+            for trial in range(n_trials):
+                conf = copy.deepcopy(hyper_conf)
+                for name, val in params.items():
+                    splits = name.split(".")
+                    access = conf
+                    for part in splits[:-1]:
+                        access = access[part]
+                    access[splits[-1]] = val
+                conf["trial"] = trial
+                configs.append(conf)
         return configs
     else:
         if "hyper" in hyper_conf:
@@ -41,35 +48,29 @@ def hyper_to_configs(path):
         return [hyper_conf]
 
 
-def random_experiment_id():
-    return str(random.randint(1_000_000, 2_000_000))
-
-
-@click.group()
-def cli():
-    pass
-
-
-@cli.command(name="generate")
-@click.option("--n-trials", type=int, default=1)
+@click.command()
 @click.option("--slurm-job/--no-slurm-job", is_flag=True, default=True)
 @click.argument("hyper_conf_path")
 @click.argument("base_json_conf")
 @click.argument("name")
-def hyper_cli(n_trials, slurm_job, hyper_conf_path, base_json_conf, name):
+def hyper_cli(slurm_job: bool, hyper_conf_path: str, base_json_conf: str, name: str):
     configs = hyper_to_configs(hyper_conf_path)
     for c in configs:
         conf_name = random_experiment_id()
-        conf_dir = os.path.abspath(os.path.join("config", "generated", name, conf_name))
+        trial = c["trial"]
+        conf_dir = os.path.abspath(os.path.join("config", "generated", name, conf_name, trial))
         allennlp_conf_path = os.path.join(conf_dir, f"{conf_name}.json")
         conf_path = os.path.join(conf_dir, f"{conf_name}.toml")
-        serialization_dir = os.path.abspath(os.path.join("model", "generated", name, conf_name))
+        serialization_dir = os.path.abspath(
+            os.path.join("model", "generated", name, conf_name, trial)
+        )
         c["generated_id"] = conf_name
         c["name"] = name
         c["allennlp_conf"] = allennlp_conf_path
         c["serialization_dir"] = serialization_dir
         c["conf_dir"] = conf_dir
         c["conf_path"] = conf_path
+        c["trial"] = trial
         os.makedirs(os.path.dirname(conf_path), exist_ok=True)
         os.makedirs(serialization_dir, exist_ok=True)
         with open(conf_path, "w") as f:
@@ -108,7 +109,7 @@ def hyper_cli(n_trials, slurm_job, hyper_conf_path, base_json_conf, name):
                 ]
                 f.write(" ".join(args) + "\n")
             else:
-                f.write(f"python qb/main.py train {conf_path}\n")
+                f.write(f"bash train.sh {conf_dir} {conf_path}\n")
 
     with open(f"{name}-scav-jobs.sh", "w") as f:
         for c in configs:
@@ -120,11 +121,6 @@ def hyper_cli(n_trials, slurm_job, hyper_conf_path, base_json_conf, name):
                 conf_path,
             ]
             f.write(" ".join(args) + "\n")
-
-
-@cli.command(name="train")
-def train_cli():
-    pass
 
 
 if __name__ == "__main__":
