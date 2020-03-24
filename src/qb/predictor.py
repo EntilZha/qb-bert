@@ -1,12 +1,13 @@
-from typing import Dict
+from typing import Dict, Any, List
 import logging
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
 from allennlp.predictors import Predictor
 from allennlp.common.util import JsonDict
-from allennlp.data import TokenIndexer, Tokenizer
+from allennlp.data import TokenIndexer, Tokenizer, Instance, Vocabulary
 
 from qb.model import Guesser
 from qb.data import QantaReader
@@ -85,33 +86,50 @@ def generate_guesses(
     rows = []
     guesser_name = type(model)
     questions = dataset.read(fold)
-    predictions = []
     idx = 0
     log.info("Making guess predictions")
+    bar = tqdm(total=len(questions))
     while True:
-        batch = questions[idx : idx + batch_size]
-        if len(batch) == 0:
+        batch_questions = questions[idx : idx + batch_size]
+        if len(batch_questions) == 0:
             break
-        predictions.extend(predictor.predict_batch_instance(batch))
-        idx += batch_size
-
-    log.info("Converting predictions to pandas dataframe")
-    for q, pred in tqdm(zip(questions, predictions)):
-        top_scores = pred["top_k_scores"]
-        top_indices = pred["top_k_indices"]
-        meta = q["metadata"]
-        for score, guess_idx in zip(top_scores, top_indices):
-            guess = model.vocab.get_token_from_index(guess_idx, namespace="page_labels")
-            rows.append(
-                {
-                    "qanta_id": meta["qanta_id"],
-                    "proto_id": meta["proto_id"],
-                    "char_index": meta["char_idx"],
-                    "guess": guess,
-                    "score": score,
-                    "fold": fold,
-                    "guesser": guesser_name,
-                }
+        batch_preds = predictor.predict_batch_instance(batch_questions)
+        for q, pred in zip(batch_questions, batch_preds):
+            rows.extend(
+                prediction_to_rows(
+                    fold=fold,
+                    guesser_name=guesser_name,
+                    vocab=model.vocab,
+                    question=q,
+                    prediction=pred,
+                )
             )
 
+        idx += batch_size
+        bar.update(len(batch_questions))
+    bar.close()
+
     return pd.DataFrame(rows)
+
+
+def prediction_to_rows(
+    *, fold: str, guesser_name: str, vocab: Vocabulary, question: Instance, prediction
+) -> List[Dict[str, Any]]:
+    top_scores = prediction["top_k_scores"]
+    top_indices = prediction["top_k_indices"]
+    meta = question["metadata"]
+    rows = []
+    for score, guess_idx in zip(top_scores, top_indices):
+        guess = vocab.get_token_from_index(guess_idx, namespace="page_labels")
+        rows.append(
+            {
+                "qanta_id": meta["qanta_id"],
+                "proto_id": meta["proto_id"],
+                "char_index": meta["char_idx"],
+                "guess": guess,
+                "score": score,
+                "fold": fold,
+                "guesser": guesser_name,
+            }
+        )
+    return rows
