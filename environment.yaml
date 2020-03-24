@@ -15,13 +15,14 @@ dependencies:
   - jedi
   - click=7.0.*
   - toml
+  - pytest
   - pip
   - pip:
-    - allennlp==0.9.*
-    - overrides
-    - spacy
-    - plotnine
-    - unidecode
+      - allennlp==0.9.*
+      - overrides
+      - spacy
+      - plotnine
+      - unidecode
 channels:
   - anaconda
   - pytorch

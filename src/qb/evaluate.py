@@ -1,18 +1,20 @@
 from typing import Text
+import logging
 import os
-import tqdm
-import comet_ml
-import numpy as np
+
 from allennlp.models.archival import load_archive
+import comet_ml
+import tqdm
+import numpy as np
+
 from qb.predictor import QbPredictor
-from qb.util import get_logger
 
 
-log = get_logger(__name__)
+log = logging.getLogger(__name__)
 
 
 def compute_accuracy(predictor: QbPredictor, instances):
-    vocab = predictor._model.vocab
+    vocab = predictor._model.vocab  # pylint: disable=protected-access
     batch_size = 32
     idx = 0
     preds = []
@@ -42,13 +44,13 @@ def score_model(serialization_dir: Text, log_to_comet=False):
     dataset_reader.full_question_only = False
     dev_first_sentence = dataset_reader.read("guessdev")
     accuracy_start_dev = compute_accuracy(predictor, dev_first_sentence)
-    print("first", "dev", accuracy_start_dev)
+    log.info("First dev accuracy: %s", accuracy_start_dev)
 
     dataset_reader.first_sentence_only = False
     dataset_reader.full_question_only = True
     dev_full_question = dataset_reader.read("guessdev")
     accuracy_full_dev = compute_accuracy(predictor, dev_full_question)
-    print("full", "dev", accuracy_full_dev)
+    log.info("Full dev accuracy: %s", accuracy_full_dev)
 
     log.info("log_to_comet: %s", log_to_comet)
     if log_to_comet:

@@ -1,11 +1,9 @@
 import os
 import random
-import glob
 import copy
 import subprocess
 import toml
 import click
-import toml
 from sklearn.model_selection import ParameterGrid
 
 
@@ -124,4 +122,4 @@ def hyper_cli(slurm_job: bool, hyper_conf_path: str, base_json_conf: str, name: 
 
 
 if __name__ == "__main__":
-    hyper_cli()
+    hyper_cli()  # pylint: disable=no-value-for-parameter

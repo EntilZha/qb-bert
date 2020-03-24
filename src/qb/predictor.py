@@ -1,4 +1,5 @@
-from typing import Dict, List
+from typing import Dict
+import logging
 
 import pandas as pd
 from tqdm import tqdm
@@ -9,11 +10,9 @@ from allennlp.data import TokenIndexer, Tokenizer
 
 from qb.model import Guesser
 from qb.data import QantaReader
-from qb import util
 
 
-log = util.get_logger(__name__)
-
+log = logging.getLogger(__name__)
 
 Predictor.register("qb_predictor")
 
@@ -88,12 +87,15 @@ def generate_guesses(
     questions = dataset.read(fold)
     predictions = []
     idx = 0
+    log.info("Making guess predictions")
     while True:
         batch = questions[idx : idx + batch_size]
         if len(batch) == 0:
             break
         predictions.extend(predictor.predict_batch_instance(batch))
         idx += batch_size
+
+    log.info("Converting predictions to pandas dataframe")
     for q, pred in tqdm(zip(questions, predictions)):
         top_scores = pred["top_k_scores"]
         top_indices = pred["top_k_indices"]

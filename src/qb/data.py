@@ -1,19 +1,19 @@
-from typing import Dict, List, Optional, Text
+from typing import Dict, List, Optional, Text, Tuple
+import logging
 import re
+
 from unidecode import unidecode
 import nltk
-import json
-
 from overrides import overrides
 from tqdm import tqdm
 
 from allennlp.data import DatasetReader, TokenIndexer, Instance
 from allennlp.data.fields import TextField, LabelField, Field, MetadataField
-from allennlp.data.tokenizers import Tokenizer, WordTokenizer, Token
-from allennlp.data.tokenizers.pretrained_transformer_tokenizer import PretrainedTransformerTokenizer
-from allennlp.data.token_indexers import TokenIndexer, PretrainedBertIndexer
+from allennlp.data.tokenizers import Tokenizer
 
 from qb import util
+
+log = logging.getLogger(__name__)
 
 
 qb_patterns = {
@@ -26,15 +26,14 @@ qb_patterns = {
     "for ten points, ",
     "for 10 points ",
     "for ten points ",
-    ", ftp," "ftp,",
+    ", ftp,",
+    "ftp,",
     "ftp",
     "(*)",
 }
 re_pattern = "|".join([re.escape(p) for p in qb_patterns])
 re_pattern += r"|\[.*?\]|\(.*?\)"
 
-
-log = util.get_logger(__name__)
 
 QANTA_TRAIN = "data/qanta.train.2018.04.18.json"
 QANTA_DEV = "data/qanta.dev.2018.04.18.json"
@@ -70,14 +69,14 @@ def extract_wiki_sentences(*, title: str, text: str, n_sentences: int, replace_t
     for p in paragraphs:
         formatted_text = re.sub(title_word_pattern, replace_title_mentions, p, flags=re.IGNORECASE)
         # Cleanup whitespace
-        formatted_text = re.sub("\s+", " ", formatted_text).strip()
+        formatted_text = re.sub(r"\s+", " ", formatted_text).strip()
 
         sentences.extend(nltk.sent_tokenize(formatted_text))
 
     return sentences[:n_sentences]
 
 
-def create_char_runs(text: str, char_skip: int):
+def create_char_runs(text: str, char_skip: int) -> List[Tuple[str, int]]:
     """
     Returns runs of the question based on skipping char_skip characters at a time. Also returns the indices used
 
@@ -91,7 +90,7 @@ def create_char_runs(text: str, char_skip: int):
     :param char_skip: Number of characters to skip each time
     """
     char_indices = list(range(char_skip, len(text) + char_skip, char_skip))
-    return [text[:i] for i in char_indices], char_indices
+    return [(text[:idx], idx) for idx in char_indices]
 
 
 @DatasetReader.register("qanta")
@@ -125,7 +124,7 @@ class QantaReader(DatasetReader):
         self._token_indexers = token_indexers
 
     @overrides
-    def _read(self, fold):
+    def _read(self, fold):  # pylint: disable=arguments-differ
         log.info("Reading instances from fold=%s, file_path=%s", fold, self.qanta_path)
         questions = util.read_json(self.qanta_path)["questions"]
         max_examples = 256 if self._debug else None
@@ -197,7 +196,7 @@ class QantaReader(DatasetReader):
         source: Optional[Text] = None,
         proto_id: Optional[Text] = None,
         qanta_id: Optional[int] = None
-    ):
+    ):  # pylint: disable=arguments-differ
         fields: Dict[str, Field] = {}
         tokenized_text = self._tokenizer.tokenize(text)
         fields["text"] = TextField(tokenized_text, token_indexers=self._token_indexers)

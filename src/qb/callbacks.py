@@ -62,6 +62,6 @@ class LogToComet(Callback):
                 self._experiment.log_asset(slurm_log_file, overwrite=True)
 
     @handle_event(Events.ERROR)
-    def mark_run_failure(self, trainer):
+    def mark_run_failure(self, _):
         if self._experiment is not None:
             self._experiment.add_tag("FAILED")
