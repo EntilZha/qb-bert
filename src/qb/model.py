@@ -20,7 +20,7 @@ class Guesser(Model):
         vocab: Vocabulary,
         dropout: float,
         hidden_dim: int,
-        label_namespace: str = "page_labels"
+        label_namespace: str = "page_labels",
     ):
         super().__init__(vocab)
         self.top_k = None
@@ -111,7 +111,7 @@ class RnnGuesser(Guesser):
         hidden_dim: int = 1500,
         bidirectional: bool = True,
         n_hidden_layers: int = 1,
-        label_namespace: str = "page_labels"
+        label_namespace: str = "page_labels",
     ):
         contextualizer = PytorchSeq2VecWrapper(
             nn.GRU(
@@ -141,7 +141,7 @@ class RnnGuesser(Guesser):
                     num_embeddings=vocab.get_vocab_size(),
                     embedding_dim=emb_dim,
                     trainable=True,
-                    pretrained_file="https://allennlp.s3.amazonaws.com/datasets/glove/glove.840B.300d.txt.gz",
+                    pretrained_file=f"https://allennlp.s3.amazonaws.com/datasets/glove/glove.840B.{emb_dim}d.txt.gz",
                 )
             }
         )
@@ -167,7 +167,7 @@ class DanGuesser(Guesser):
         emb_dim: int = 300,
         dropout: float = 0.5,
         pool: str = "avg",
-        label_namespace: str = "page_labels"
+        label_namespace: str = "page_labels",
     ):
         super().__init__(
             vocab=vocab, dropout=dropout, label_namespace=label_namespace, hidden_dim=hidden_dim
@@ -178,7 +178,7 @@ class DanGuesser(Guesser):
                     num_embeddings=vocab.get_vocab_size(),
                     embedding_dim=emb_dim,
                     trainable=True,
-                    pretrained_file="https://allennlp.s3.amazonaws.com/datasets/glove/glove.840B.300d.txt.gz",
+                    pretrained_file=f"https://allennlp.s3.amazonaws.com/datasets/glove/glove.840B.{emb_dim}d.txt.gz",
                 )
             }
         )

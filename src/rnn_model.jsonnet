@@ -1,4 +1,4 @@
-function(lr=0.001, dropout=0.25, debug=false) {
+function(lr=0.001, dropout=0.25, hidden_dim=1500, n_hidden_layers=1, debug=false) {
   dataset_reader: {
     qanta_path: '/fs/clip-quiz/entilzha/code/qb-bert/src/data/qanta.mapped.2018.04.18.json',
     lazy: false,
@@ -22,6 +22,8 @@ function(lr=0.001, dropout=0.25, debug=false) {
   model: {
     type: 'rnn_guesser',
     dropout: dropout,
+    hidden_dim: hidden_dim,
+    n_hidden_layers: n_hidden_layers,
   },
   iterator: {
     type: 'bucket',

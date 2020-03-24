@@ -29,6 +29,8 @@ def cli():
 @click.option("--log_to_comet", default=True, type=bool)
 @click.argument("config_path")
 def cli_train(log_to_comet: bool, config_path: str):
+    log.info("log_to_comet: %s", log_to_comet)
+    log.info("config_path: %s", config_path)
     log.info("Training model")
     with open(config_path) as f:
         conf = toml.load(f)

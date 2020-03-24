@@ -5,6 +5,10 @@ import comet_ml
 import numpy as np
 from allennlp.models.archival import load_archive
 from qb.predictor import QbPredictor
+from qb.util import get_logger
+
+
+log = get_logger(__name__)
 
 
 def compute_accuracy(predictor: QbPredictor, instances):
@@ -46,6 +50,7 @@ def score_model(serialization_dir: Text, log_to_comet=False):
     accuracy_full_dev = compute_accuracy(predictor, dev_full_question)
     print("full", "dev", accuracy_full_dev)
 
+    log.info("log_to_comet: %s", log_to_comet)
     if log_to_comet:
         experiment = comet_ml.get_global_experiment()
         experiment.log_metric("dev_first_accuracy", accuracy_start_dev)
