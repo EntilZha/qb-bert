@@ -1,3 +1,4 @@
+import abc
 from typing import Dict, Text
 
 import torch
@@ -36,6 +37,10 @@ class Guesser(Model):
         )
         self._accuracy = CategoricalAccuracy()
         self._loss = torch.nn.CrossEntropyLoss()
+
+    @abc.abstractmethod
+    def forward(self, *inputs):
+        pass
 
     def _hidden_to_output(
         self,
@@ -86,7 +91,7 @@ class BertGuesser(Guesser):
 
     def forward(
         self, text: Dict[str, torch.LongTensor], metadata=None, page: torch.IntTensor = None
-    ):
+    ):  # pylint: disable=arguments-differ
         input_ids: torch.LongTensor = text["text"]
         # Grab the representation of CLS token, which is always first
         if self._pool == "cls":
@@ -149,7 +154,7 @@ class RnnGuesser(Guesser):
 
     def forward(
         self, text: Dict[str, torch.LongTensor], metadata=None, page: torch.IntTensor = None
-    ):
+    ):  # pylint: disable=arguments-differ
         mask = get_text_field_mask(text)
         embeddings = self._embedder(text)
         hidden_state = self._contextualizer(embeddings, mask)
@@ -209,7 +214,7 @@ class DanGuesser(Guesser):
 
     def forward(
         self, text: Dict[str, torch.LongTensor], metadata=None, page: torch.IntTensor = None
-    ):
+    ):  # pylint: disable=arguments-differ
         mask = get_text_field_mask(text)
         embeddings = self._embedder(text)
         pooled_emb = self._boe(embeddings, mask)
