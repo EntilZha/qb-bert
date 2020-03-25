@@ -9,8 +9,9 @@ from allennlp.models.archival import load_archive
 from allennlp.predictors.predictor import Predictor
 
 from qb.util import shell
-from qb.evaluate import score_model
+from qb.evaluate import score_model, guess_df_path, create_guesser_report
 from qb.predictor import generate_guesses
+from qb import constants
 
 # imports for allennlp register
 from qb import model  # pylint: disable=unused-import
@@ -93,9 +94,8 @@ def cli_generate_guesses(
     dataset_reader = predictor._dataset_reader
     tokenizer = dataset_reader._tokenizer
     token_indexers = dataset_reader._token_indexers
-    generation_folds = ["guessdev", "guesstest", "buzztrain", "buzzdev", "buzztest"]
     log.info("Generating guesses")
-    for fold in generation_folds:
+    for fold in constants.GENERATION_FOLDS:
         log.info("Guesses for fold %s", fold)
         df = generate_guesses(
             model=archive.model,
@@ -108,8 +108,15 @@ def cli_generate_guesses(
             partial_question=partial_question,
             char_skip=char_skip,
         )
-        path = os.path.join(output_dir, f"guesses_{granularity}_{fold}.pickle")
+        path = os.path.join(output_dir, guess_df_path(granularity, fold))
         df.to_pickle(path)
+
+
+@cli.command(name="generate_report")
+@click.argument("mapped_qanta_path")
+@click.argument("config_path")
+def cli_generate_report(mapped_qanta_path: str, config_path: str):
+    create_guesser_report(mapped_qanta_path, config_path)
 
 
 if __name__ == "__main__":
