@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 import click
 import toml
@@ -31,7 +32,7 @@ def cli():
 
 
 @cli.command(name="train")
-@click.option("--log_to_comet", default=True, type=bool)
+@click.option("--log-to-comet", default=True, type=bool)
 @click.argument("config_path")
 def cli_train(log_to_comet: bool, config_path: str):
     log.info("log_to_comet: %s", log_to_comet)
@@ -52,12 +53,16 @@ def cli_train(log_to_comet: bool, config_path: str):
 
 
 @cli.command(name="evaluate")
+@click.option("--log-to-comet", default=False, type=bool)
+@click.option("--comet-experiment-id", default=None, type=str)
 @click.argument("config_path")
-def cli_evaluate(config_path: str):
+def cli_evaluate(log_to_comet: bool, comet_experiment_id: Optional[str], config_path: str):
     with open(config_path) as f:
         conf = toml.load(f)
     serialization_dir = conf["serialization_dir"]
-    score_model(serialization_dir)
+    score_model(
+        serialization_dir, log_to_comet=log_to_comet, comet_experiment_id=comet_experiment_id
+    )
 
 
 @cli.command(name="generate_guesses")

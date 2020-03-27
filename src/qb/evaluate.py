@@ -1,4 +1,4 @@
-from typing import Text
+from typing import Text, Optional
 import pickle
 from collections import Counter
 import json
@@ -40,7 +40,9 @@ def compute_accuracy(predictor: QbPredictor, instances):
     return np.mean(correct)
 
 
-def score_model(serialization_dir: Text, log_to_comet=False):
+def score_model(
+    serialization_dir: Text, log_to_comet=False, comet_experiment_id: Optional[str] = None
+):
     archive = load_archive(os.path.join(serialization_dir, "model.tar.gz"), cuda_device=0)
     predictor = QbPredictor.from_archive(archive, predictor_name="qb.predictor.QbPredictor",)
     dataset_reader = predictor._dataset_reader  # pylint: disable=protected-access
@@ -60,7 +62,10 @@ def score_model(serialization_dir: Text, log_to_comet=False):
 
     log.info("log_to_comet: %s", log_to_comet)
     if log_to_comet:
-        experiment = comet_ml.get_global_experiment()
+        if comet_experiment_id is None:
+            experiment = comet_ml.get_global_experiment()
+        else:
+            experiment = comet_ml.ExistingExperiment(previous_experiment=comet_experiment_id)
         experiment.log_metric("dev_first_accuracy", accuracy_start_dev)
         experiment.log_metric("dev_full_accuracy", accuracy_full_dev)
 
