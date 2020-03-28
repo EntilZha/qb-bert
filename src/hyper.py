@@ -29,6 +29,7 @@ def hyper_to_configs(path: str):
         grid = ParameterGrid(hyper_conf["hyper"])
         del hyper_conf["hyper"]
         for params in grid:
+            generated_id = random_experiment_id()
             for trial in range(n_trials):
                 conf = copy.deepcopy(hyper_conf)
                 for name, val in params.items():
@@ -38,12 +39,18 @@ def hyper_to_configs(path: str):
                         access = access[part]
                     access[splits[-1]] = val
                 conf["trial"] = trial
+                conf["generated_id"] = generated_id
                 configs.append(conf)
-        return configs
     else:
         if "hyper" in hyper_conf:
             del hyper_conf["hyper"]
-        return [hyper_conf]
+        generated_id = random_experiment_id()
+        for trial in range(n_trials):
+            conf = copy.deepcopy(hyper_conf)
+            conf["trial"] = trial
+            conf["generated_id"] = generated_id
+            configs.append(conf)
+    return configs
 
 
 @click.command()
@@ -54,15 +61,16 @@ def hyper_to_configs(path: str):
 def hyper_cli(slurm_job: bool, hyper_conf_path: str, base_json_conf: str, name: str):
     configs = hyper_to_configs(hyper_conf_path)
     for c in configs:
-        conf_name = random_experiment_id()
+        generated_id = c["generated_id"]
         trial = c["trial"]
-        conf_dir = os.path.abspath(os.path.join("config", "generated", name, conf_name, trial))
-        allennlp_conf_path = os.path.join(conf_dir, f"{conf_name}.json")
-        conf_path = os.path.join(conf_dir, f"{conf_name}.toml")
-        serialization_dir = os.path.abspath(
-            os.path.join("model", "generated", name, conf_name, trial)
+        conf_dir = os.path.abspath(
+            os.path.join("config", "generated", name, generated_id, str(trial))
         )
-        c["generated_id"] = conf_name
+        allennlp_conf_path = os.path.join(conf_dir, f"{generated_id}.json")
+        conf_path = os.path.join(conf_dir, f"{generated_id}.toml")
+        serialization_dir = os.path.abspath(
+            os.path.join("model", "generated", name, generated_id, str(trial))
+        )
         c["name"] = name
         c["allennlp_conf"] = allennlp_conf_path
         c["serialization_dir"] = serialization_dir
@@ -73,7 +81,11 @@ def hyper_cli(slurm_job: bool, hyper_conf_path: str, base_json_conf: str, name: 
         os.makedirs(serialization_dir, exist_ok=True)
         with open(conf_path, "w") as f:
             toml.dump(c, f)
-        args = []
+        args = [
+            f"--tla-code pytorch_seed={trial}",
+            f"--tla-code numpy_seed={trial}",
+            f"--tla-code random_seed={trial}",
+        ]
         for key, val in c["params"].items():
             if isinstance(val, str):
                 args.append(f"--tla-str {key}={val}")

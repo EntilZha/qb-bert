@@ -1,0 +1,12 @@
+model = "rnn"
+n_trials = 5
+
+[slurm]
+qos = "gpu-medium"
+time = "1-00:00:00"
+
+[params]
+dropout = 0.35
+lr = 0.001
+hidden_dim = 300
+n_hidden_layers = 1

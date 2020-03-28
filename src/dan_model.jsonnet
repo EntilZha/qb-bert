@@ -1,4 +1,7 @@
-function(lr=0.001, dropout=0.5, debug=false, hidden_dim=300, pool="avg", n_hidden_layers=1) {
+function(lr=0.001, dropout=0.5, debug=false, hidden_dim=300, pool="avg", n_hidden_layers=1, pytorch_seed=0, numpy_seed=0, random_seed=0) {
+  pytorch_seed: pytorch_seed,
+  numpy_seed: numpy_seed,
+  random_seed: random_seed,
   dataset_reader: {
     qanta_path: '/fs/clip-quiz/entilzha/code/qb-bert/src/data/qanta.mapped.2018.04.18.json',
     lazy: false,
