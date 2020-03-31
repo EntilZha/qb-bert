@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, List
 
 import click
 import toml
@@ -68,27 +68,11 @@ def cli_evaluate(log_to_comet: bool, comet_experiment_id: Optional[str], config_
 @cli.command(name="generate_guesses")
 @click.option("--char-skip", type=int, default=25)
 @click.option("--max-n-guesses", type=int, default=10)
+@click.option("--granularity", "granularities", multiple=True, type=str)
 @click.argument("config_path")
-@click.argument("granularity")
-@click.argument("output_dir")
 def cli_generate_guesses(
-    char_skip: int, max_n_guesses: int, config_path: str, granularity: str, output_dir: str
+    char_skip: int, max_n_guesses: int, granularities: List[str], config_path: str
 ):
-    if granularity == "first":
-        first_sentence = True
-        full_question = False
-        partial_question = False
-    elif granularity == "full":
-        first_sentence = False
-        full_question = True
-        partial_question = False
-    elif granularity == "char":
-        first_sentence = False
-        full_question = False
-        partial_question = True
-    else:
-        raise ValueError("Invalid granularity")
-
     with open(config_path) as f:
         conf = toml.load(f)
     serialization_dir = conf["serialization_dir"]
@@ -99,22 +83,38 @@ def cli_generate_guesses(
     dataset_reader = predictor._dataset_reader
     tokenizer = dataset_reader._tokenizer
     token_indexers = dataset_reader._token_indexers
-    log.info("Generating guesses")
-    for fold in constants.GENERATION_FOLDS:
-        log.info("Guesses for fold %s", fold)
-        df = generate_guesses(
-            model=archive.model,
-            tokenizer=tokenizer,
-            token_indexers=token_indexers,
-            max_n_guesses=max_n_guesses,
-            fold=fold,
-            first_sentence=first_sentence,
-            full_question=full_question,
-            partial_question=partial_question,
-            char_skip=char_skip,
-        )
-        path = os.path.join(output_dir, guess_df_path(granularity, fold))
-        df.to_pickle(path)
+    for granularity in granularities:
+        if granularity == "first":
+            first_sentence = True
+            full_question = False
+            partial_question = False
+        elif granularity == "full":
+            first_sentence = False
+            full_question = True
+            partial_question = False
+        elif granularity == "char":
+            first_sentence = False
+            full_question = False
+            partial_question = True
+        else:
+            raise ValueError("Invalid granularity")
+
+        log.info("Generating guesses")
+        for fold in constants.GENERATION_FOLDS:
+            log.info("Guesses for fold %s", fold)
+            df = generate_guesses(
+                model=archive.model,
+                tokenizer=tokenizer,
+                token_indexers=token_indexers,
+                max_n_guesses=max_n_guesses,
+                fold=fold,
+                first_sentence=first_sentence,
+                full_question=full_question,
+                partial_question=partial_question,
+                char_skip=char_skip,
+            )
+            path = os.path.join(serialization_dir, guess_df_path(granularity, fold))
+            df.to_pickle(path)
 
 
 @cli.command(name="generate_report")
