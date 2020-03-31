@@ -84,7 +84,7 @@ def generate_guesses(
 
     predictor = QbPredictor(model, dataset, top_k=max_n_guesses)
     rows = []
-    guesser_name = type(model)
+    guesser_name = type(model).__name__
     questions = dataset.read(fold)
     idx = 0
     log.info("Making guess predictions")

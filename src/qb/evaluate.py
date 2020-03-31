@@ -70,6 +70,18 @@ def score_model(
         experiment.log_metric("dev_full_accuracy", accuracy_full_dev)
 
 
+def fix_guesser_name(df: pd.DataFrame):
+    if "guesser" in df.columns and len(df) > 0:
+        first_name = df["guesser"].iloc[0]
+        if type(first_name) == type:
+            unique_names = df["guesser"].map(lambda x: x.__name__).unique()
+            if len(unique_names) == 1:
+                name = unique_names[0]
+                df["guesser"] = name
+            else:
+                raise ValueError(f"dataframe uses multiple guesser names: {unique_names}")
+
+
 def create_guesser_report(mapped_qanta_path: str, config_path: str):
     log.info("reading qb questions")
     with open(mapped_qanta_path) as f:
@@ -89,7 +101,6 @@ def create_guesser_report(mapped_qanta_path: str, config_path: str):
     trial = conf.get("trial", 0)
     generated_id = conf["generated_id"]
     model_dir = conf["serialization_dir"]
-    fold = "guessdev"
     for fold in constants.REPORT_FOLDS:
         log.info("starting report generation for fold=%s", fold)
         questions = [q for q in all_questions if q["fold"] == fold]
@@ -118,12 +129,14 @@ def create_guesser_report(mapped_qanta_path: str, config_path: str):
         )
         log.info("Loading char df")
         char_guess_df = pd.read_pickle(os.path.join(model_dir, guess_df_path("char", fold)))
+        fix_guesser_name(char_guess_df)
         char_df = char_guess_df.merge(question_df, on="qanta_id")
         char_df["correct"] = (char_df.guess == char_df.page).astype("int")
         char_df["char_percent"] = (char_df["char_index"] / char_df["text_length"]).clip(upper=1.0)
 
         log.info("Loading first df")
         first_guess_df = pd.read_pickle(os.path.join(model_dir, guess_df_path("first", fold)))
+        fix_guesser_name(first_guess_df)
         first_df = first_guess_df.merge(question_df, on="qanta_id").sort_values(
             "score", ascending=False
         )
@@ -134,6 +147,7 @@ def create_guesser_report(mapped_qanta_path: str, config_path: str):
 
         log.info("Loading full df")
         full_guess_df = pd.read_pickle(os.path.join(model_dir, guess_df_path("full", fold)))
+        fix_guesser_name(full_guess_df)
         full_df = full_guess_df.merge(question_df, on="qanta_id").sort_values(
             "score", ascending=False
         )
