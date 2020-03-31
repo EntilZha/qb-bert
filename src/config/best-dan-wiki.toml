@@ -1,0 +1,13 @@
+model = "dan"
+n_trials = 5
+
+[slurm]
+qos = "gpu-medium"
+time = "1-00:00:00"
+
+[params]
+dropout = 0.2
+lr = 1e-4
+hidden_dim = 1000
+pool = "sum"
+n_wiki_sentences = 5

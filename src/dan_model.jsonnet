@@ -1,15 +1,17 @@
-function(lr=0.001, dropout=0.5, debug=false, hidden_dim=300, pool="avg", n_hidden_layers=1, pytorch_seed=0, numpy_seed=0, random_seed=0) {
+function(n_wiki_sentences=0, lr=0.001, dropout=0.5, debug=false, hidden_dim=300, pool="avg", n_hidden_layers=1, pytorch_seed=0, numpy_seed=0, random_seed=0) {
   pytorch_seed: pytorch_seed,
   numpy_seed: numpy_seed,
   random_seed: random_seed,
   dataset_reader: {
     qanta_path: '/fs/clip-quiz/entilzha/code/qb-bert/src/data/qanta.mapped.2018.04.18.json',
+    wiki_path: '/fs/clip-quiz/entilzha/code/qb-bert/src/data/wiki_lookup.json',
     lazy: false,
     debug: debug,
     type: 'qanta',
     full_question_only: false,
     first_sentence_only: false,
     char_skip: null,
+    n_wiki_sentences: n_wiki_sentences,
     tokenizer: {
       type: 'word',
     },

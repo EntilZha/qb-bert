@@ -175,9 +175,12 @@ class QantaReader(DatasetReader):
                             source="qb",
                         )
         if fold == "guesstrain" and self.n_wiki_sentences > 0:
+            log.info("Adding %s wiki sentences for each answer", self.n_wiki_sentences)
             wiki_lookup = util.read_json(self.wiki_path)
-            pages_with_text = [(p, wiki_lookup[p]["text"]) for p in answer_set if p in wiki_lookup]
-            for page, text in pages_with_text.items():
+            pages_with_text = [
+                (page, wiki_lookup[page]["text"]) for page in answer_set if page in wiki_lookup
+            ]
+            for page, text in tqdm(pages_with_text):
                 sentences = extract_wiki_sentences(
                     title=page, text=text, n_sentences=self.n_wiki_sentences,
                 )
