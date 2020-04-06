@@ -5,13 +5,13 @@ import re
 from unidecode import unidecode
 import nltk
 from overrides import overrides
-from tqdm import tqdm
 
 from allennlp.data import DatasetReader, TokenIndexer, Instance
 from allennlp.data.fields import TextField, LabelField, Field, MetadataField
 from allennlp.data.tokenizers import Tokenizer
 
 from qb import util
+from qb.util import stqdm
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +131,7 @@ class QantaReader(DatasetReader):
         questions = questions[:max_examples]
 
         answer_set = set()
-        for q in tqdm(questions):
+        for q in stqdm(questions):
             if q["page"] is not None and q["fold"] == fold:
                 proto_id = q.get("proto_id")
                 answer_set.add(q["page"])
@@ -180,7 +180,7 @@ class QantaReader(DatasetReader):
             pages_with_text = [
                 (page, wiki_lookup[page]["text"]) for page in answer_set if page in wiki_lookup
             ]
-            for page, text in tqdm(pages_with_text):
+            for page, text in stqdm(pages_with_text):
                 sentences = extract_wiki_sentences(
                     title=page, text=text, n_sentences=self.n_wiki_sentences,
                 )

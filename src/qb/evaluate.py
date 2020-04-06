@@ -8,12 +8,12 @@ import os
 import comet_ml
 from allennlp.models.archival import load_archive
 import toml
-import tqdm
 import numpy as np
 import pandas as pd
 
 from qb import constants
 from qb.predictor import QbPredictor
+from qb.util import stqdm
 
 
 log = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def compute_accuracy(predictor: QbPredictor, instances):
     batch_size = 32
     idx = 0
     preds = []
-    progress = tqdm.tqdm(total=len(instances))
+    progress = stqdm(total=len(instances))
     while idx < len(instances):
         batch = instances[idx : idx + batch_size]
         preds.extend(predictor.predict_batch_instance(batch))

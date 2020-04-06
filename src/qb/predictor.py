@@ -1,9 +1,7 @@
 from typing import Dict, Any, List
 import logging
 
-import numpy as np
 import pandas as pd
-from tqdm import tqdm
 
 from allennlp.predictors import Predictor
 from allennlp.common.util import JsonDict
@@ -11,6 +9,7 @@ from allennlp.data import TokenIndexer, Tokenizer, Instance, Vocabulary
 
 from qb.model import Guesser
 from qb.data import QantaReader
+from qb.util import stqdm
 
 
 log = logging.getLogger(__name__)
@@ -88,7 +87,7 @@ def generate_guesses(
     questions = dataset.read(fold)
     idx = 0
     log.info("Making guess predictions")
-    bar = tqdm(total=len(questions))
+    bar = stqdm(total=len(questions))
     while True:
         batch_questions = questions[idx : idx + batch_size]
         if len(batch_questions) == 0:
