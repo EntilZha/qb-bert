@@ -2,3 +2,4 @@
 config/generated
 mlruns/
 model/
+events.out.tfevents.*

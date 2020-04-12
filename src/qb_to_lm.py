@@ -13,6 +13,7 @@ def write_fold(nlp, pages: List[str], texts: List[str], out_path: str):
             for sent in doc.sents:
                 f.write(" ".join(t.text for t in sent))
                 f.write("\n")
+            f.write("\n")
 
 
 @click.command()
