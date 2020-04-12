@@ -1,0 +1,8 @@
+model = "bert"
+n_trials = 5
+
+[params]
+pool = "mean"
+lr = 3e-5
+dropout = 0.2
+pretrained_model = '/fs/clip-quiz/entilzha/qanta_lm/'

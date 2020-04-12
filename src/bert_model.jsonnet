@@ -1,4 +1,13 @@
-function(n_wiki_sentences=0, lr=0.00001, dropout=0.25, pool='mean', debug=false, pytorch_seed=0, numpy_seed=0, random_seed=0) {
+function(n_wiki_sentences=0,
+         lr=0.00001,
+         dropout=0.25,
+         pool='mean',
+         debug=false,
+         pytorch_seed=0,
+         numpy_seed=0,
+         random_seed=0,
+         model_name='bert-base-uncased',
+         pretrained_model='bert-base-uncased') {
   pytorch_seed: pytorch_seed,
   numpy_seed: numpy_seed,
   random_seed: random_seed,
@@ -14,7 +23,7 @@ function(n_wiki_sentences=0, lr=0.00001, dropout=0.25, pool='mean', debug=false,
     n_wiki_sentences: n_wiki_sentences,
     tokenizer: {
       type: 'pretrained_transformer',
-      model_name: 'bert-base-uncased',
+      model_name: model_name,
       do_lowercase: true,
       start_tokens: [],
       end_tokens: [],
@@ -22,8 +31,9 @@ function(n_wiki_sentences=0, lr=0.00001, dropout=0.25, pool='mean', debug=false,
     token_indexers: {
       text: {
         type: 'bert-pretrained',
-        pretrained_model: 'bert-base-uncased'
-      }
+        pretrained_model: pretrained_model,
+
+      },
     },
   },
   train_data_path: 'guesstrain',
@@ -32,6 +42,7 @@ function(n_wiki_sentences=0, lr=0.00001, dropout=0.25, pool='mean', debug=false,
     type: 'bert_guesser',
     dropout: dropout,
     pool: pool,
+    model_name_or_path: pretrained_model,
   },
   iterator: {
     type: 'bucket',

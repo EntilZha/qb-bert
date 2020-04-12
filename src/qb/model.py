@@ -77,15 +77,17 @@ class BertGuesser(Guesser):
         vocab: Vocabulary,
         dropout: float,
         pool: Text = "cls",
+        model_name_or_path: Text = "bert-base-uncased",
         label_namespace: str = "page_labels",
     ):
-        bert = PretrainedBertEmbedder("bert-base-uncased", requires_grad=True)
+        bert = PretrainedBertEmbedder(model_name_or_path, requires_grad=True)
         super().__init__(
             vocab=vocab,
             dropout=dropout,
             label_namespace=label_namespace,
             hidden_dim=bert.get_output_dim(),
         )
+        self._model_name_or_path = model_name_or_path
         self._bert = bert
         self._pool = pool
 
