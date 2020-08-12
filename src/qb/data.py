@@ -104,6 +104,7 @@ class QantaReader(DatasetReader):
         first_sentence_only: bool,
         char_skip: Optional[int] = None,
         qanta_path: str = QANTA_MAPPED,
+        trickme_path: Optional[str] = None,
         wiki_path: Optional[str] = None,
         n_wiki_sentences: int = 0,
         include_label: bool = True,
@@ -117,6 +118,7 @@ class QantaReader(DatasetReader):
         self.n_wiki_sentences = n_wiki_sentences
         self.include_label = include_label
         self.qanta_path = qanta_path
+        self.trickme_path = trickme_path
         self.wiki_path = wiki_path
 
         self._debug = debug
@@ -125,8 +127,12 @@ class QantaReader(DatasetReader):
 
     @overrides
     def _read(self, fold):  # pylint: disable=arguments-differ
-        log.info("Reading instances from fold=%s, file_path=%s", fold, self.qanta_path)
-        questions = util.read_json(self.qanta_path)["questions"]
+        if fold == "adversarial":
+            dataset_path = self.trickme_path
+        else:
+            dataset_path = self.qanta_path
+        log.info("Reading instances from fold=%s, file_path=%s", fold, dataset_path)
+        questions = util.read_json(dataset_path)["questions"]
         max_examples = 256 if self._debug else None
         questions = questions[:max_examples]
 

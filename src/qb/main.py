@@ -69,9 +69,22 @@ def cli_evaluate(log_to_comet: bool, comet_experiment_id: Optional[str], config_
 @click.option("--char-skip", type=int, default=25)
 @click.option("--max-n-guesses", type=int, default=10)
 @click.option("--granularity", "granularities", multiple=True, type=str)
+@click.option("--trickme-path", type=str, default=None)
+@click.option(
+    "--generation-fold",
+    "generation_folds",
+    multiple=True,
+    type=str,
+    default=constants.GENERATION_FOLDS,
+)
 @click.argument("config_path")
 def cli_generate_guesses(
-    char_skip: int, max_n_guesses: int, granularities: List[str], config_path: str
+    char_skip: int,
+    max_n_guesses: int,
+    granularities: List[str],
+    trickme_path: str,
+    generation_folds: List[str],
+    config_path: str,
 ):
     with open(config_path) as f:
         conf = toml.load(f)
@@ -99,8 +112,8 @@ def cli_generate_guesses(
         else:
             raise ValueError("Invalid granularity")
 
-        log.info("Generating guesses")
-        for fold in constants.GENERATION_FOLDS:
+        log.info("Generating guesses for: %s", generation_folds)
+        for fold in generation_folds:
             log.info("Guesses for fold %s", fold)
             df = generate_guesses(
                 model=archive.model,
@@ -112,6 +125,7 @@ def cli_generate_guesses(
                 full_question=full_question,
                 partial_question=partial_question,
                 char_skip=char_skip,
+                trickme_path=trickme_path,
             )
             path = os.path.join(serialization_dir, guess_df_path(granularity, fold))
             df.to_pickle(path)

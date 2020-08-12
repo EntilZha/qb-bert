@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 
 import pandas as pd
@@ -34,6 +34,7 @@ def generate_guesses(
     token_indexers: Dict[str, TokenIndexer],
     max_n_guesses: int,
     fold: str,
+    trickme_path: Optional[str] = None,
     char_skip: int = 25,
     partial_question: bool = False,
     full_question: bool = False,
@@ -59,6 +60,7 @@ def generate_guesses(
             first_sentence_only=False,
             char_skip=None,
             include_label=False,
+            trickme_path=trickme_path,
         )
     elif first_sentence:
         dataset = QantaReader(
@@ -68,6 +70,7 @@ def generate_guesses(
             first_sentence_only=True,
             char_skip=None,
             include_label=False,
+            trickme_path=trickme_path,
         )
     elif partial_question:
         dataset = QantaReader(
@@ -77,6 +80,7 @@ def generate_guesses(
             first_sentence_only=False,
             char_skip=char_skip,
             include_label=False,
+            trickme_path=trickme_path,
         )
     else:
         raise ValueError("Invalid combination of arguments")
