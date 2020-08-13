@@ -23,6 +23,7 @@ dependencies:
       - spacy
       - plotnine
       - unidecode
+      - pedroai
 channels:
   - anaconda
   - pytorch

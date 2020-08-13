@@ -1,2 +1,43 @@
+[tool.poetry]
+name = "qb"
+version = "0.1.0"
+description = ""
+authors = ["Pedro Rodriguez <me@pedro.ai>"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+torch = "^1.4"
+click = "^7.0"
+allennlp = "0.9.0"
+# AllenNLP does not pin this, so it takes forever to resolve
+boto3 = "1.14.41"
+numpy = "^1.19.1"
+scipy = "^1.5.2"
+pandas = "^1.1.0"
+requests = "^2.24.0"
+flask = "^1.1.2"
+toml = "^0.10.1"
+overrides = "^3.1.0"
+plotnine = "^0.7.1"
+unidecode = "^1.1.1"
+spacy = "2.1.*"
+comet-ml = "^3.1.16"
+pedroai = "^0.1.9"
+
+[tool.poetry.dev-dependencies]
+ipython = "^7.17.0"
+jupyter = "^1.0.0"
+pylint = "^2.5.3"
+pyflakes = "^2.2.0"
+pycodestyle = "^2.6.0"
+jedi = "^0.17.2"
+pytest = "^6.0.1"
+black = "^19.10b0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
 [tool.black]
 line-length = 100

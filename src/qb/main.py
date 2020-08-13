@@ -8,6 +8,7 @@ import comet_ml  # pylint: disable=unused-import
 from allennlp.commands import train
 from allennlp.models.archival import load_archive
 from allennlp.predictors.predictor import Predictor
+from pedroai.io import read_json
 
 from qb.util import shell
 from qb.evaluate import score_model, guess_df_path, create_guesser_report
@@ -136,6 +137,39 @@ def cli_generate_guesses(
 @click.argument("config_path")
 def cli_generate_report(mapped_qanta_path: str, config_path: str):
     create_guesser_report(mapped_qanta_path, config_path)
+
+
+@cli.command(name='to_fasttext')
+@click.argument('mapped_qanta_path')
+@click.argument('output_dir')
+def cli_to_fasttext(mapped_qanta_path: str, output_dir: str):
+    questions = [q for q in read_json(mapped_qanta_path)['questions'] if q['page'] is not None]
+    train = [q for q in questions if q['fold'] == 'guesstrain']
+    dev = [q for q in questions if q['fold'] == 'guessdev']
+    test = [q for q in questions if q['fold'] == 'guesstest']
+    questions_by_fold = [('train', train), ('dev', dev), ('test', test)]
+    for fold, examples in questions_by_fold:
+        start_file = open(os.path.join(output_dir, f'qanta.{fold}.start.txt'), 'w')
+        end_file = open(os.path.join(output_dir, f'qanta.{fold}.end.txt'), 'w')
+        sent_file = open(os.path.join(output_dir, f'qanta.{fold}.sent.txt'), 'w')
+        for q in examples:
+            page = q['page']
+            for sent_start, sent_end in q['tokenizations']:
+                sent_text = q['text'][sent_start:sent_end].lower()
+                if len(sent_text) > 4:
+                    sent_file.write(f"__label__{page} {sent_text}\n")
+                    
+            start_text = q['first_sentence'].lower()
+            end_text = q['text'].lower()
+            start_file.write(f"__label__{page} {start_text}\n")
+            end_file.write(f"__label__{page} {end_text}\n")
+
+        start_file.close()
+        end_file.close()
+        sent_file.close()
+
+    
+                
 
 
 if __name__ == "__main__":
