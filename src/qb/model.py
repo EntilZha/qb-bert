@@ -42,6 +42,14 @@ class Guesser(Model):
     def forward(self, *inputs):
         pass
 
+    def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        preds = [
+            self.vocab.get_token_from_index(idx.item(), namespace="page_labels")
+            for idx in output_dict["preds"].cpu()
+        ]
+        output_dict["preds_readable"] = output_dict
+        return output_dict
+
     def _hidden_to_output(
         self,
         # (batch_size, hidden_size)
