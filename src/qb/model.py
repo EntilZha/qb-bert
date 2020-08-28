@@ -47,7 +47,7 @@ class Guesser(Model):
             self.vocab.get_token_from_index(idx.item(), namespace="page_labels")
             for idx in output_dict["preds"].cpu()
         ]
-        output_dict["preds_readable"] = output_dict
+        output_dict["preds_readable"] = preds
         return output_dict
 
     def _hidden_to_output(
