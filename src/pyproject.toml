@@ -35,9 +35,10 @@ jedi = "^0.17.2"
 pytest = "^6.0.1"
 black = "^19.10b0"
 
+[tool.black]
+line-length = 100
+
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
 
-[tool.black]
-line-length = 100

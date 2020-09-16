@@ -1,8 +1,9 @@
 import logging
+import argparse
 import os
 from typing import Optional, List
 
-import click
+import typer
 import toml
 import comet_ml  # pylint: disable=unused-import
 from allennlp.commands import train
@@ -26,16 +27,13 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-
-@click.group()
-def cli():
-    pass
+app = typer.Typer()
 
 
-@cli.command(name="train")
-@click.option("--log-to-comet", default=True, type=bool)
-@click.argument("config_path")
-def cli_train(log_to_comet: bool, config_path: str):
+
+
+@app.command("train")
+def cli_train(config_path: str, log_to_comet: bool = False):
     log.info("log_to_comet: %s", log_to_comet)
     log.info("config_path: %s", config_path)
     log.info("Training model")
@@ -53,11 +51,8 @@ def cli_train(log_to_comet: bool, config_path: str):
     shell(f'touch {conf["serialization_dir"]}/COMPLETE')
 
 
-@cli.command(name="evaluate")
-@click.option("--log-to-comet", default=False, type=bool)
-@click.option("--comet-experiment-id", default=None, type=str)
-@click.argument("config_path")
-def cli_evaluate(log_to_comet: bool, comet_experiment_id: Optional[str], config_path: str):
+@app.command("evaluate")
+def cli_evaluate(config_path: str, log_to_comet: bool = False, comet_experiment_id: Optional[str] = None):
     with open(config_path) as f:
         conf = toml.load(f)
     serialization_dir = conf["serialization_dir"]
@@ -66,26 +61,14 @@ def cli_evaluate(log_to_comet: bool, comet_experiment_id: Optional[str], config_
     )
 
 
-@cli.command(name="generate_guesses")
-@click.option("--char-skip", type=int, default=25)
-@click.option("--max-n-guesses", type=int, default=10)
-@click.option("--granularity", "granularities", multiple=True, type=str)
-@click.option("--trickme-path", type=str, default=None)
-@click.option(
-    "--generation-fold",
-    "generation_folds",
-    multiple=True,
-    type=str,
-    default=constants.GENERATION_FOLDS,
-)
-@click.argument("config_path")
+@app.command("generate_guesses")
 def cli_generate_guesses(
-    char_skip: int,
-    max_n_guesses: int,
-    granularities: List[str],
-    trickme_path: str,
-    generation_folds: List[str],
     config_path: str,
+    granularity: List[str] = [],
+    char_skip: int = 25,
+    max_n_guesses: int = 10,
+    trickme_path: str = None,
+    generation_fold: List[str] = constants.GENERATION_FOLDS,
 ):
     with open(config_path) as f:
         conf = toml.load(f)
@@ -97,24 +80,24 @@ def cli_generate_guesses(
     dataset_reader = predictor._dataset_reader
     tokenizer = dataset_reader._tokenizer
     token_indexers = dataset_reader._token_indexers
-    for granularity in granularities:
-        if granularity == "first":
+    for g in granularity:
+        if g == "first":
             first_sentence = True
             full_question = False
             partial_question = False
-        elif granularity == "full":
+        elif g == "full":
             first_sentence = False
             full_question = True
             partial_question = False
-        elif granularity == "char":
+        elif g == "char":
             first_sentence = False
             full_question = False
             partial_question = True
         else:
             raise ValueError("Invalid granularity")
 
-        log.info("Generating guesses for: %s", generation_folds)
-        for fold in generation_folds:
+        log.info("Generating guesses for: %s", generation_fold)
+        for fold in generation_fold:
             log.info("Guesses for fold %s", fold)
             df = generate_guesses(
                 model=archive.model,
@@ -128,39 +111,50 @@ def cli_generate_guesses(
                 char_skip=char_skip,
                 trickme_path=trickme_path,
             )
-            path = os.path.join(serialization_dir, guess_df_path(granularity, fold))
+            path = os.path.join(serialization_dir, guess_df_path(g, fold))
             df.to_pickle(path)
 
 
-@cli.command(name="generate_report")
-@click.argument("mapped_qanta_path")
-@click.argument("config_path")
+@app.command("predict")
+def cli_predict(granularity: str, fold: str, config_path: str):
+    with open(config_path) as f:
+        conf = toml.load(f)
+    serialization_dir = conf["serialization_dir"]
+    log.info("Loading model from: %s", serialization_dir)
+    archive = load_archive(os.path.join(serialization_dir, "model.tar.gz"), cuda_device=0)
+    predictor = Predictor.from_archive(archive, "qb.predictor.QbPredictor")
+    # pylint: disable=protected-access
+    dataset_reader = predictor._dataset_reader
+    tokenizer = dataset_reader._tokenizer
+    token_indexers = dataset_reader._token_indexers
+    
+
+
+@app.command("generate_report")
 def cli_generate_report(mapped_qanta_path: str, config_path: str):
     create_guesser_report(mapped_qanta_path, config_path)
 
 
-@cli.command(name='to_fasttext')
-@click.argument('mapped_qanta_path')
-@click.argument('output_dir')
+@app.command("to_fasttext")
 def cli_to_fasttext(mapped_qanta_path: str, output_dir: str):
-    questions = [q for q in read_json(mapped_qanta_path)['questions'] if q['page'] is not None]
-    train = [q for q in questions if q['fold'] == 'guesstrain']
-    dev = [q for q in questions if q['fold'] == 'guessdev']
-    test = [q for q in questions if q['fold'] == 'guesstest']
-    questions_by_fold = [('train', train), ('dev', dev), ('test', test)]
+    questions = [q for q in read_json(mapped_qanta_path)["questions"] if q["page"] is not None]
+    train = [q for q in questions if q["fold"] == "guesstrain"]
+    dev = [q for q in questions if q["fold"] == "guessdev"]
+    test = [q for q in questions if q["fold"] == "guesstest"]
+    questions_by_fold = [("train", train), ("dev", dev), ("test", test)]
     for fold, examples in questions_by_fold:
-        start_file = open(os.path.join(output_dir, f'qanta.{fold}.start.txt'), 'w')
-        end_file = open(os.path.join(output_dir, f'qanta.{fold}.end.txt'), 'w')
-        sent_file = open(os.path.join(output_dir, f'qanta.{fold}.sent.txt'), 'w')
+        start_file = open(os.path.join(output_dir, f"qanta.{fold}.start.txt"), "w")
+        end_file = open(os.path.join(output_dir, f"qanta.{fold}.end.txt"), "w")
+        sent_file = open(os.path.join(output_dir, f"qanta.{fold}.sent.txt"), "w")
         for q in examples:
-            page = q['page']
-            for sent_start, sent_end in q['tokenizations']:
-                sent_text = q['text'][sent_start:sent_end].lower()
+            page = q["page"]
+            for sent_start, sent_end in q["tokenizations"]:
+                sent_text = q["text"][sent_start:sent_end].lower()
                 if len(sent_text) > 4:
                     sent_file.write(f"__label__{page} {sent_text}\n")
-                    
-            start_text = q['first_sentence'].lower()
-            end_text = q['text'].lower()
+
+            start_text = q["first_sentence"].lower()
+            end_text = q["text"].lower()
             start_file.write(f"__label__{page} {start_text}\n")
             end_file.write(f"__label__{page} {end_text}\n")
 
@@ -168,9 +162,6 @@ def cli_to_fasttext(mapped_qanta_path: str, output_dir: str):
         end_file.close()
         sent_file.close()
 
-    
-                
-
 
 if __name__ == "__main__":
-    cli()
+    app()
